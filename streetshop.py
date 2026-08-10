@@ -127,6 +127,26 @@ async def is_user_admin(user_id: int) -> bool:
         # Если база недоступна, проверяем только главного админа
         return user_id == cfg.ADMIN_ID
 
+# Вспомогательная функция для проверки текста кнопки из БД
+async def is_button_text(message_text: str, button_key: str) -> bool:
+    """Проверяет, соответствует ли текст сообщения названию кнопки из БД"""
+    try:
+        button_name = await db.get_button_name(button_key)
+        if button_name:
+            return message_text == button_name
+        # Если кнопка не найдена в БД, используем дефолтные значения
+        default_names = {
+            'catalog': '🏪 Каталог товаров',
+            'deposit': '💳 Пополнить баланс',
+            'profile': '👤 Мой профиль',
+            'contact': '📞 Связаться',
+            'bonus': '🎁ПОЛУЧИ БОНУСЫ🎁'
+        }
+        return message_text == default_names.get(button_key, '')
+    except Exception:
+        # При ошибке возвращаем False
+        return False
+
 # Функция для обновления команд для нового админа
 async def set_admin_commands_for_user(user_id: int):
     """Устанавливает админ команды для конкретного пользователя"""
@@ -137,6 +157,7 @@ async def set_admin_commands_for_user(user_id: int):
             BotCommand(command="start", description="Главное меню"),
             BotCommand(command="cards", description="💳 Управление реквизитами"),
             BotCommand(command="edit", description="✏️ Изменить /start"),
+            BotCommand(command="editbutton", description="✏️ Изменить кнопки меню"),
             BotCommand(command="admins", description="👥 Административный состав"),
             BotCommand(command="send", description="📢 Рассылка"),
             BotCommand(command="mmnt", description="📄 Экспорт пользователей")
@@ -2726,7 +2747,7 @@ async def send_welcome(message: types.Message):
         await notify_admins_user_joined(message.from_user)
 
 
-@dp.message_handler(lambda message: message.text and message.text == "🏪 Каталог товаров")
+@dp.message_handler(lambda message: message.text and message.text in ["🏪 Каталог товаров", "Каталог товаров"])
 async def handle_catalog_button(message: types.Message):
     """Обработчик кнопки каталога товаров"""
     try:
@@ -2782,8 +2803,9 @@ async def handle_catalog_button(message: types.Message):
             reply_markup=await main_menu_kb()
         )
 
-@dp.message_handler(lambda message: message.text and message.text == "💳 Пополнить баланс")
+@dp.message_handler(lambda message: message.text and message.text in ["💳 Пополнить баланс", "Пополнить баланс"])
 async def payment_handler(message: types.Message):
+    """Обработчик кнопки пополнения баланса"""
     try:
         # Сначала отправляем стикер
         await bot.send_sticker(
@@ -2803,8 +2825,9 @@ async def payment_handler(message: types.Message):
             reply_markup=await main_menu_kb()
         )
 
-@dp.message_handler(lambda message: message.text and message.text == "👤 Мой профиль")
+@dp.message_handler(lambda message: message.text and message.text in ["👤 Мой профиль", "Мой профиль"])
 async def show_profile(message: types.Message):
+    """Обработчик кнопки профиля"""
     try:
         await bot.send_sticker(
             chat_id=message.chat.id,
@@ -4136,8 +4159,9 @@ async def back_to_profile(callback: types.CallbackQuery, state: FSMContext):
     await smart_cleanup_after_send(callback)
     await callback.answer()
 
-@dp.message_handler(lambda message: message.text and message.text == "📞 Связаться")
+@dp.message_handler(lambda message: message.text and message.text in ["📞 Связаться", "Связаться"])
 async def contact_support(message: types.Message):
+    """Обработчик кнопки связи"""
     try:
         await send_support_sticker(message.chat.id)  # Используем глобальную функцию
         await message.answer(
@@ -5913,6 +5937,487 @@ async def admin_edit_catalog_desc_save(message: types.Message, state: FSMContext
     except Exception as e:
         print(f"admin_edit_catalog_desc_save error: {e}")
         await message.answer("❌ Ошибка при обновлении описания")
+        await state.finish()
+
+# === Обработчики редактирования фото, стикера и превью-ссылки ===
+
+# Фото категории
+@dp.callback_query_handler(lambda c: c.data.startswith("admin_edit_category_photo_"), state="*")
+async def admin_edit_category_photo_start(callback: types.CallbackQuery, state: FSMContext):
+    try:
+        if not await is_user_admin(callback.from_user.id):
+            return await callback.answer("Недостаточно прав")
+        category_id = int(callback.data.split("_")[-1])
+        
+        # Получаем информацию о текущем фото категории
+        category = await db.get_catalog_item(category_id)
+        current_photo_status = "Нет фото"
+        if category and category[6]:  # photo_id
+            current_photo_status = "Есть фото"
+        
+        await state.update_data(edit_item_id=category_id, edit_item_type='category')
+        message_text = f"🖼 <b>Текущее состояние:</b> {current_photo_status}\n\n🖼 Пришлите новое фото категории (как фото):"
+        
+        # Отправляем текущее фото если оно есть
+        if category and category[6]:
+            try:
+                await bot.send_photo(
+                    chat_id=callback.message.chat.id,
+                    photo=category[6],
+                    caption=message_text,
+                    parse_mode='HTML',
+                    reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_category_{category_id}"))
+                )
+            except Exception as e:
+                print(f"Error sending current photo: {e}")
+                await bot.send_message(
+                    chat_id=callback.message.chat.id,
+                    text=message_text,
+                    parse_mode='HTML',
+                    reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_category_{category_id}"))
+                )
+        else:
+            await bot.send_message(
+                chat_id=callback.message.chat.id,
+                text=message_text,
+                parse_mode='HTML',
+                reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_category_{category_id}"))
+            )
+        
+        await AdminCatalogEditStates.waiting_for_photo.set()
+        await callback.answer()
+    except Exception as e:
+        print(f"admin_edit_category_photo_start error: {e}")
+        await callback.answer("Ошибка")
+
+# Стикер категории
+@dp.callback_query_handler(lambda c: c.data.startswith("admin_edit_category_sticker_"), state="*")
+async def admin_edit_category_sticker_start(callback: types.CallbackQuery, state: FSMContext):
+    try:
+        if not await is_user_admin(callback.from_user.id):
+            return await callback.answer("Недостаточно прав")
+        category_id = int(callback.data.split("_")[-1])
+        
+        # Получаем информацию о текущем стикере категории
+        category = await db.get_catalog_item(category_id)
+        current_sticker_status = "Нет стикера"
+        if category and category[5]:  # sticker_id
+            current_sticker_status = "Есть стикер"
+        
+        await state.update_data(edit_item_id=category_id, edit_item_type='category')
+        message_text = f"🎦 <b>Текущее состояние:</b> {current_sticker_status}\n\n🎦 Пришлите новый стикер категории (как стикер):"
+        
+        # Отправляем текущий стикер если он есть
+        if category and category[5]:
+            try:
+                await bot.send_sticker(
+                    chat_id=callback.message.chat.id,
+                    sticker=category[5],
+                    reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_category_{category_id}"))
+                )
+                await bot.send_message(
+                    chat_id=callback.message.chat.id,
+                    text=message_text,
+                    parse_mode='HTML',
+                    reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_category_{category_id}"))
+                )
+            except Exception as e:
+                print(f"Error sending current sticker: {e}")
+                await bot.send_message(
+                    chat_id=callback.message.chat.id,
+                    text=message_text,
+                    parse_mode='HTML',
+                    reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_category_{category_id}"))
+                )
+        else:
+            await bot.send_message(
+                chat_id=callback.message.chat.id,
+                text=message_text,
+                parse_mode='HTML',
+                reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_category_{category_id}"))
+            )
+        
+        await AdminCatalogEditStates.waiting_for_sticker.set()
+        await callback.answer()
+    except Exception as e:
+        print(f"admin_edit_category_sticker_start error: {e}")
+        await callback.answer("Ошибка")
+
+# Превью-ссылка категории
+@dp.callback_query_handler(lambda c: c.data.startswith("admin_edit_category_preview_"), state="*")
+async def admin_edit_category_preview_start(callback: types.CallbackQuery, state: FSMContext):
+    try:
+        if not await is_user_admin(callback.from_user.id):
+            return await callback.answer("Недостаточно прав")
+        category_id = int(callback.data.split("_")[-1])
+        
+        # Получаем текущую превью-ссылку категории
+        category = await db.get_catalog_item(category_id)
+        current_preview = category[7] if category and category[7] and category[7] != 'None' else "Не установлена"
+        
+        await state.update_data(edit_item_id=category_id, edit_item_type='category')
+        await bot.send_message(
+            chat_id=callback.message.chat.id,
+            text=f"🔗 <b>Текущая превью-ссылка:</b>\n{current_preview}\n\n🔗 Пришлите новую превью-ссылку (URL):",
+            parse_mode='HTML',
+            reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_category_{category_id}"))
+        )
+        await AdminCatalogEditStates.waiting_for_preview_link.set()
+        await callback.answer()
+    except Exception as e:
+        print(f"admin_edit_category_preview_start error: {e}")
+        await callback.answer("Ошибка")
+
+# Фото темы
+@dp.callback_query_handler(lambda c: c.data.startswith("admin_edit_theme_photo_"), state="*")
+async def admin_edit_theme_photo_start(callback: types.CallbackQuery, state: FSMContext):
+    try:
+        if not await is_user_admin(callback.from_user.id):
+            return await callback.answer("Недостаточно прав")
+        theme_id = int(callback.data.split("_")[-1])
+        
+        # Получаем информацию о текущем фото темы
+        theme = await db.get_catalog_item(theme_id)
+        current_photo_status = "Нет фото"
+        if theme and theme[6]:  # photo_id
+            current_photo_status = "Есть фото"
+        
+        await state.update_data(edit_item_id=theme_id, edit_item_type='theme')
+        message_text = f"🖼 <b>Текущее состояние:</b> {current_photo_status}\n\n🖼 Пришлите новое фото темы (как фото):"
+        
+        # Отправляем текущее фото если оно есть
+        if theme and theme[6]:
+            try:
+                await bot.send_photo(
+                    chat_id=callback.message.chat.id,
+                    photo=theme[6],
+                    caption=message_text,
+                    parse_mode='HTML',
+                    reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_theme_{theme_id}"))
+                )
+            except Exception as e:
+                print(f"Error sending current photo: {e}")
+                await bot.send_message(
+                    chat_id=callback.message.chat.id,
+                    text=message_text,
+                    parse_mode='HTML',
+                    reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_theme_{theme_id}"))
+                )
+        else:
+            await bot.send_message(
+                chat_id=callback.message.chat.id,
+                text=message_text,
+                parse_mode='HTML',
+                reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_theme_{theme_id}"))
+            )
+        
+        await AdminCatalogEditStates.waiting_for_photo.set()
+        await callback.answer()
+    except Exception as e:
+        print(f"admin_edit_theme_photo_start error: {e}")
+        await callback.answer("Ошибка")
+
+# Стикер темы
+@dp.callback_query_handler(lambda c: c.data.startswith("admin_edit_theme_sticker_"), state="*")
+async def admin_edit_theme_sticker_start(callback: types.CallbackQuery, state: FSMContext):
+    try:
+        if not await is_user_admin(callback.from_user.id):
+            return await callback.answer("Недостаточно прав")
+        theme_id = int(callback.data.split("_")[-1])
+        
+        # Получаем информацию о текущем стикере темы
+        theme = await db.get_catalog_item(theme_id)
+        current_sticker_status = "Нет стикера"
+        if theme and theme[5]:  # sticker_id
+            current_sticker_status = "Есть стикер"
+        
+        await state.update_data(edit_item_id=theme_id, edit_item_type='theme')
+        message_text = f"🎦 <b>Текущее состояние:</b> {current_sticker_status}\n\n🎦 Пришлите новый стикер темы (как стикер):"
+        
+        # Отправляем текущий стикер если он есть
+        if theme and theme[5]:
+            try:
+                await bot.send_sticker(
+                    chat_id=callback.message.chat.id,
+                    sticker=theme[5],
+                    reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_theme_{theme_id}"))
+                )
+                await bot.send_message(
+                    chat_id=callback.message.chat.id,
+                    text=message_text,
+                    parse_mode='HTML',
+                    reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_theme_{theme_id}"))
+                )
+            except Exception as e:
+                print(f"Error sending current sticker: {e}")
+                await bot.send_message(
+                    chat_id=callback.message.chat.id,
+                    text=message_text,
+                    parse_mode='HTML',
+                    reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_theme_{theme_id}"))
+                )
+        else:
+            await bot.send_message(
+                chat_id=callback.message.chat.id,
+                text=message_text,
+                parse_mode='HTML',
+                reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_theme_{theme_id}"))
+            )
+        
+        await AdminCatalogEditStates.waiting_for_sticker.set()
+        await callback.answer()
+    except Exception as e:
+        print(f"admin_edit_theme_sticker_start error: {e}")
+        await callback.answer("Ошибка")
+
+# Превью-ссылка темы
+@dp.callback_query_handler(lambda c: c.data.startswith("admin_edit_theme_preview_"), state="*")
+async def admin_edit_theme_preview_start(callback: types.CallbackQuery, state: FSMContext):
+    try:
+        if not await is_user_admin(callback.from_user.id):
+            return await callback.answer("Недостаточно прав")
+        theme_id = int(callback.data.split("_")[-1])
+        
+        # Получаем текущую превью-ссылку темы
+        theme = await db.get_catalog_item(theme_id)
+        current_preview = theme[7] if theme and theme[7] and theme[7] != 'None' else "Не установлена"
+        
+        await state.update_data(edit_item_id=theme_id, edit_item_type='theme')
+        await bot.send_message(
+            chat_id=callback.message.chat.id,
+            text=f"🔗 <b>Текущая превью-ссылка:</b>\n{current_preview}\n\n🔗 Пришлите новую превью-ссылку (URL):",
+            parse_mode='HTML',
+            reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_theme_{theme_id}"))
+        )
+        await AdminCatalogEditStates.waiting_for_preview_link.set()
+        await callback.answer()
+    except Exception as e:
+        print(f"admin_edit_theme_preview_start error: {e}")
+        await callback.answer("Ошибка")
+
+# Фото подкатегории
+@dp.callback_query_handler(lambda c: c.data.startswith("admin_edit_subcategory_photo_"), state="*")
+async def admin_edit_subcategory_photo_start(callback: types.CallbackQuery, state: FSMContext):
+    try:
+        if not await is_user_admin(callback.from_user.id):
+            return await callback.answer("Недостаточно прав")
+        subcategory_id = int(callback.data.split("_")[-1])
+        
+        # Получаем информацию о текущем фото подкатегории
+        subcategory = await db.get_catalog_item(subcategory_id)
+        current_photo_status = "Нет фото"
+        if subcategory and subcategory[6]:  # photo_id
+            current_photo_status = "Есть фото"
+        
+        await state.update_data(edit_item_id=subcategory_id, edit_item_type='subcategory')
+        message_text = f"🖼 <b>Текущее состояние:</b> {current_photo_status}\n\n🖼 Пришлите новое фото подкатегории (как фото):"
+        
+        # Отправляем текущее фото если оно есть
+        if subcategory and subcategory[6]:
+            try:
+                await bot.send_photo(
+                    chat_id=callback.message.chat.id,
+                    photo=subcategory[6],
+                    caption=message_text,
+                    parse_mode='HTML',
+                    reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_subcategory_{subcategory_id}"))
+                )
+            except Exception as e:
+                print(f"Error sending current photo: {e}")
+                await bot.send_message(
+                    chat_id=callback.message.chat.id,
+                    text=message_text,
+                    parse_mode='HTML',
+                    reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_subcategory_{subcategory_id}"))
+                )
+        else:
+            await bot.send_message(
+                chat_id=callback.message.chat.id,
+                text=message_text,
+                parse_mode='HTML',
+                reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_subcategory_{subcategory_id}"))
+            )
+        
+        await AdminCatalogEditStates.waiting_for_photo.set()
+        await callback.answer()
+    except Exception as e:
+        print(f"admin_edit_subcategory_photo_start error: {e}")
+        await callback.answer("Ошибка")
+
+# Стикер подкатегории
+@dp.callback_query_handler(lambda c: c.data.startswith("admin_edit_subcategory_sticker_"), state="*")
+async def admin_edit_subcategory_sticker_start(callback: types.CallbackQuery, state: FSMContext):
+    try:
+        if not await is_user_admin(callback.from_user.id):
+            return await callback.answer("Недостаточно прав")
+        subcategory_id = int(callback.data.split("_")[-1])
+        
+        # Получаем информацию о текущем стикере подкатегории
+        subcategory = await db.get_catalog_item(subcategory_id)
+        current_sticker_status = "Нет стикера"
+        if subcategory and subcategory[5]:  # sticker_id
+            current_sticker_status = "Есть стикер"
+        
+        await state.update_data(edit_item_id=subcategory_id, edit_item_type='subcategory')
+        message_text = f"🎦 <b>Текущее состояние:</b> {current_sticker_status}\n\n🎦 Пришлите новый стикер подкатегории (как стикер):"
+        
+        # Отправляем текущий стикер если он есть
+        if subcategory and subcategory[5]:
+            try:
+                await bot.send_sticker(
+                    chat_id=callback.message.chat.id,
+                    sticker=subcategory[5],
+                    reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_subcategory_{subcategory_id}"))
+                )
+                await bot.send_message(
+                    chat_id=callback.message.chat.id,
+                    text=message_text,
+                    parse_mode='HTML',
+                    reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_subcategory_{subcategory_id}"))
+                )
+            except Exception as e:
+                print(f"Error sending current sticker: {e}")
+                await bot.send_message(
+                    chat_id=callback.message.chat.id,
+                    text=message_text,
+                    parse_mode='HTML',
+                    reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_subcategory_{subcategory_id}"))
+                )
+        else:
+            await bot.send_message(
+                chat_id=callback.message.chat.id,
+                text=message_text,
+                parse_mode='HTML',
+                reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_subcategory_{subcategory_id}"))
+            )
+        
+        await AdminCatalogEditStates.waiting_for_sticker.set()
+        await callback.answer()
+    except Exception as e:
+        print(f"admin_edit_subcategory_sticker_start error: {e}")
+        await callback.answer("Ошибка")
+
+# Превью-ссылка подкатегории
+@dp.callback_query_handler(lambda c: c.data.startswith("admin_edit_subcategory_preview_"), state="*")
+async def admin_edit_subcategory_preview_start(callback: types.CallbackQuery, state: FSMContext):
+    try:
+        if not await is_user_admin(callback.from_user.id):
+            return await callback.answer("Недостаточно прав")
+        subcategory_id = int(callback.data.split("_")[-1])
+        
+        # Получаем текущую превью-ссылку подкатегории
+        subcategory = await db.get_catalog_item(subcategory_id)
+        current_preview = subcategory[7] if subcategory and subcategory[7] and subcategory[7] != 'None' else "Не установлена"
+        
+        await state.update_data(edit_item_id=subcategory_id, edit_item_type='subcategory')
+        await bot.send_message(
+            chat_id=callback.message.chat.id,
+            text=f"🔗 <b>Текущая превью-ссылка:</b>\n{current_preview}\n\n🔗 Пришлите новую превью-ссылку (URL):",
+            parse_mode='HTML',
+            reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_subcategory_{subcategory_id}"))
+        )
+        await AdminCatalogEditStates.waiting_for_preview_link.set()
+        await callback.answer()
+    except Exception as e:
+        print(f"admin_edit_subcategory_preview_start error: {e}")
+        await callback.answer("Ошибка")
+
+# Обработчики сохранения фото, стикера и превью-ссылки
+@dp.message_handler(state=AdminCatalogEditStates.waiting_for_photo, content_types=types.ContentTypes.PHOTO)
+async def admin_edit_catalog_photo_save(message: types.Message, state: FSMContext):
+    try:
+        data = await state.get_data()
+        item_id = data.get('edit_item_id')
+        item_type = data.get('edit_item_type')
+        if not item_id or not item_type:
+            await state.finish()
+            return
+        try:
+            file_id = message.photo[-1].file_id
+            await db.update_catalog_item_photo_id(item_id, file_id)
+            await message.answer("✅ Фото обновлено")
+        except Exception as e:
+            print(f"Error updating photo: {e}")
+            await message.answer("❌ Ошибка при обновлении фото")
+            return
+        await state.finish()
+        
+        # Обновляем просмотр элемента
+        try:
+            if item_type == 'category':
+                await recreate_category_view(message.chat.id, message.message_id, item_id, user_id=message.from_user.id)
+            elif item_type == 'theme':
+                await recreate_theme_view(message.chat.id, message.message_id, item_id, user_id=message.from_user.id)
+            elif item_type == 'subcategory':
+                await recreate_subcategory_view(message.chat.id, message.message_id, item_id, user_id=message.from_user.id)
+        except Exception as e:
+            print(f"Error recreating view: {e}")
+    except Exception as e:
+        print(f"admin_edit_catalog_photo_save error: {e}")
+        await message.answer("❌ Ошибка при обновлении фото")
+        await state.finish()
+
+@dp.message_handler(state=AdminCatalogEditStates.waiting_for_sticker, content_types=types.ContentTypes.STICKER)
+async def admin_edit_catalog_sticker_save(message: types.Message, state: FSMContext):
+    try:
+        data = await state.get_data()
+        item_id = data.get('edit_item_id')
+        item_type = data.get('edit_item_type')
+        if not item_id or not item_type:
+            await state.finish()
+            return
+        try:
+            file_id = message.sticker.file_id
+            await db.update_catalog_item_sticker_id(item_id, file_id)
+            await message.answer("✅ Стикер обновлен")
+        except Exception as e:
+            print(f"Error updating sticker: {e}")
+            await message.answer("❌ Ошибка при обновлении стикера")
+            return
+        await state.finish()
+        
+        # Обновляем просмотр элемента
+        try:
+            if item_type == 'category':
+                await recreate_category_view(message.chat.id, message.message_id, item_id, user_id=message.from_user.id)
+            elif item_type == 'theme':
+                await recreate_theme_view(message.chat.id, message.message_id, item_id, user_id=message.from_user.id)
+            elif item_type == 'subcategory':
+                await recreate_subcategory_view(message.chat.id, message.message_id, item_id, user_id=message.from_user.id)
+        except Exception as e:
+            print(f"Error recreating view: {e}")
+    except Exception as e:
+        print(f"admin_edit_catalog_sticker_save error: {e}")
+        await message.answer("❌ Ошибка при обновлении стикера")
+        await state.finish()
+
+@dp.message_handler(state=AdminCatalogEditStates.waiting_for_preview_link, content_types=types.ContentTypes.TEXT)
+async def admin_edit_catalog_preview_save(message: types.Message, state: FSMContext):
+    try:
+        data = await state.get_data()
+        item_id = data.get('edit_item_id')
+        item_type = data.get('edit_item_type')
+        if not item_id or not item_type:
+            await state.finish()
+            return
+        new_link = message.text.strip()
+        await db.update_catalog_item_preview_link(item_id, new_link)
+        await message.answer("✅ Превью‑ссылка обновлена")
+        await state.finish()
+        
+        # Обновляем просмотр элемента
+        try:
+            if item_type == 'category':
+                await recreate_category_view(message.chat.id, message.message_id, item_id, user_id=message.from_user.id)
+            elif item_type == 'theme':
+                await recreate_theme_view(message.chat.id, message.message_id, item_id, user_id=message.from_user.id)
+            elif item_type == 'subcategory':
+                await recreate_subcategory_view(message.chat.id, message.message_id, item_id, user_id=message.from_user.id)
+        except Exception as e:
+            print(f"Error recreating view: {e}")
+    except Exception as e:
+        print(f"admin_edit_catalog_preview_save error: {e}")
+        await message.answer("❌ Ошибка при обновлении превью‑ссылки")
         await state.finish()
 
 # === Обработчики редактирования выравнивания ===
@@ -12634,7 +13139,7 @@ async def view_task_handler(callback: types.CallbackQuery):
     
     await callback.answer()
 
-@dp.message_handler(lambda message: message.text and message.text == "🎁ПОЛУЧИ БОНУСЫ🎁")
+@dp.message_handler(lambda message: message.text and message.text in ["🎁ПОЛУЧИ БОНУСЫ🎁", "ПОЛУЧИ БОНУСЫ"])
 async def handle_bonus_button(message: types.Message):
     """Обработчик кнопки 'ПОЛУЧИ БОНУСЫ'"""
     try:
