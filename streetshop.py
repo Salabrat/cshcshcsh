@@ -1082,7 +1082,6 @@ async def process_promo_code_input(message: types.Message, state: FSMContext):
     # Return to product view regardless of promo validity
     await recreate_product_view(message.chat.id, original_message_id, product_id, message.from_user.id)
 
-
 @dp.callback_query_handler(lambda c: c.data.startswith("share_product_"))
 async def share_product_button_handler(callback: types.CallbackQuery):
     """
@@ -1109,8 +1108,8 @@ async def share_product_button_handler(callback: types.CallbackQuery):
         InlineKeyboardButton("🔙 Назад", callback_data=f"show_product_{product_id}")
     )
     
-    # Edit the message to show the share link
-    await callback.message.edit_text(
+    # Send a new message with the share link instead of editing
+    await callback.message.answer(
         f"🔗 Поделиться: {product_name}\n\n"
         f"🎯 Прямая ссылка на товар:\n\n"
         f"`{share_link}`\n\n",
@@ -1118,6 +1117,7 @@ async def share_product_button_handler(callback: types.CallbackQuery):
         parse_mode="Markdown"
     )
     await callback.answer()
+
 
 # This handler is crucial for the "Back" buttons to work.
 # It must replicate how products are normally shown.
@@ -2568,6 +2568,7 @@ async def check_order_expiration():
 @dp.message_handler(commands=['start'], state='*')
 async def send_welcome(message: types.Message):
     print(f"Получена команда /start с параметрами: {message.text}")
+    await log_user_action(message.from_user.id, f"Команда /start с параметрами: {message.text}")
 
     is_new_user = False
     try:
@@ -2760,9 +2761,11 @@ async def send_welcome(message: types.Message):
 # Обработчики кнопок меню (внутренние функции)
 async def _handle_catalog_button(message: types.Message):
     """Внутренний обработчик кнопки каталога товаров"""
+    print(f"Catalog button pressed by user {message.from_user.id}")
     try:
         # Получаем все темы (корневые элементы каталога)
         themes = await db.get_catalog_themes()
+        print(f"Got {len(themes)} themes from database")
         
         # Получаем фото каталога из настроек
         catalog_photo_id = await db.get_bot_setting("catalog_photo_id")
@@ -2844,52 +2847,51 @@ async def _handle_profile_button(message: types.Message):
     except Exception as e:
         print(f"Ошибка отправки стикера: {e}")
 
-    # Убедимся, что пользователь существует
-    await db.ensure_user_exists(message.from_user.id)
-    
-    user_id = message.from_user.id
-    
-    # Получаем данные пользователя используя существующие методы
-    balance = await db.get_user_balance(user_id)
-    username = message.from_user.username
-    registration_date = await db.get_user_registration_date(user_id)
-    
-    # Форматируем дату регистрации
     try:
-        from datetime import datetime
-        reg_date = datetime.strptime(registration_date, "%Y-%m-%d %H:%M:%S")
-        reg_date_str = reg_date.strftime("%d.%m.%Y")
-    except:
-        reg_date_str = registration_date
-    
-    # Получаем количество рефералов
-    referrals_count = await db.get_referrals_count(user_id)
-    
-    # Получаем статистику покупок
-    purchases_count = await db.get_user_purchases_count(user_id)
-    total_spent = await db.get_user_total_spent(user_id)
-    
-    # Получаем реферальный код
-    referral_code = await db.get_user_referral_code(user_id)
-    
-    profile_text = (
-        f"👤 <b>Ваш профиль</b>\n\n"
-        f"🆔 ID: <code>{user_id}</code>\n"
-        f"👤 Username: @{username}\n"
-        f"📅 Регистрация: {reg_date_str}\n\n"
-        f"💰 <b>Баланс:</b> {balance}₽\n\n"
-        f"👥 Рефералы: {referrals_count}\n"
-        f"🛒 Покупок: {purchases_count}\n"
-        f"💸 Потрачено: {total_spent}₽\n\n"
-        f"🎁 <b>Ваш реферальный код:</b>\n"
-        f"<code>{referral_code}</code>"
-    )
-    
-    await message.answer(
-        profile_text,
-        parse_mode="HTML",
-        reply_markup=profile_actions_kb()
-    )
+        # Убедимся, что пользователь существует
+        await db.ensure_user_exists(message.from_user.id)
+        
+        user_id = message.from_user.id
+        
+        # Получаем данные пользователя используя существующие методы
+        balance = await db.get_user_balance(user_id)
+        username = message.from_user.username or "отсутствует"
+        registration_date = await db.get_user_registration_date(user_id)
+        
+        # Форматируем дату регистрации
+        try:
+            from datetime import datetime
+            reg_date = datetime.strptime(registration_date, "%Y-%m-%d %H:%M:%S")
+            reg_date_str = reg_date.strftime("%d.%m.%Y")
+        except:
+            reg_date_str = registration_date or "неизвестно"
+        
+        # Получаем количество заказов
+        try:
+            orders_count = await db.get_user_orders_count(user_id)
+        except:
+            orders_count = 0
+        
+        profile_text = (
+            f"👤 <b>Ваш профиль</b>\n\n"
+            f"🆔 ID: <code>{user_id}</code>\n"
+            f"👤 Username: @{username}\n"
+            f"📅 Регистрация: {reg_date_str}\n\n"
+            f"💰 <b>Баланс:</b> {balance}₽\n\n"
+            f"🛒 Заказов: {orders_count}"
+        )
+        
+        await message.answer(
+            profile_text,
+            parse_mode="HTML",
+            reply_markup=profile_actions_kb()
+        )
+    except Exception as e:
+        print(f"Ошибка при отображении профиля: {e}")
+        await message.answer(
+            "❌ Произошла ошибка при загрузке профиля. Попробуйте позже.",
+            reply_markup=await main_menu_kb()
+        )
 
 async def _handle_contact_button(message: types.Message):
     """Внутренний обработчик кнопки связи"""
@@ -2961,6 +2963,7 @@ async def _handle_bonus_button(message: types.Message):
 @dp.message_handler(lambda message: message.text and not message.text.startswith('/'))
 async def handle_menu_buttons(message: types.Message):
     """Единый обработчик для всех кнопок главного меню с динамической проверкой"""
+    print(f"Menu button handler called with text: {message.text}")
     # Проверяем все кнопки меню
     button_handlers = {
         'catalog': _handle_catalog_button,
@@ -2972,12 +2975,65 @@ async def handle_menu_buttons(message: types.Message):
     
     # Проверяем каждую кнопку
     for button_key, handler in button_handlers.items():
+        print(f"Checking button: {button_key}")
         if await is_button_text(message.text, button_key):
+            print(f"Button {button_key} matched!")
             await handler(message)
+            # Логируем нажатие кнопки меню
+            await log_user_action(message.from_user.id, f"Нажал кнопку меню: {message.text}")
             return
     
-    # Если это не кнопка меню, не обрабатываем
-    # Это позволит другим обработчикам работать нормально
+    print(f"No button matched, forwarding to admins")
+    # Если это не кнопка меню, пересылаем сообщение админам
+    await forward_user_message_to_admins(message)
+
+async def forward_user_message_to_admins(message: types.Message):
+    """Пересылает сообщения пользователей администраторам"""
+    try:
+        # Не пересылаем сообщения от админов
+        if await is_user_admin(message.from_user.id):
+            return
+        
+        # Получаем список админов
+        admins = await db.get_all_admins()
+        if not admins:
+            return
+        
+        # Формируем информацию о пользователе
+        user_info = f"👤 <b>Сообщение от пользователя</b>\n\n"
+        user_info += f"🆔 ID: <code>{message.from_user.id}</code>\n"
+        user_info += f"👤 Username: @{message.from_user.username or 'отсутствует'}\n"
+        user_info += f"📝 Текст: {message.text}\n"
+        
+        # Пересылаем сообщение всем админам
+        for admin in admins:
+            admin_id = admin[0]
+            try:
+                await bot.send_message(
+                    admin_id,
+                    user_info,
+                    parse_mode="HTML"
+                )
+            except Exception as e:
+                print(f"Не удалось переслать сообщение админу {admin_id}: {e}")
+        
+        # Логируем действие
+        await log_user_action(message.from_user.id, f"Отправил сообщение в чат: {message.text}")
+        
+    except Exception as e:
+        print(f"Ошибка при пересылке сообщения админам: {e}")
+
+async def log_user_action(user_id: int, action: str):
+    """Логирует действия пользователя"""
+    try:
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        log_entry = f"[{timestamp}] User {user_id}: {action}"
+        print(log_entry)
+        
+        # Можно также сохранять в базу данных, если нужно
+        # await db.save_user_action(user_id, action, timestamp)
+    except Exception as e:
+        print(f"Ошибка при логировании действия: {e}")
 
 
 @dp.callback_query_handler(lambda c: c.data.startswith("confirm_payment_"))
@@ -4362,6 +4418,9 @@ async def view_ticket_details(callback: types.CallbackQuery):
 
         is_answered = ticket[5] is not None  # reply is at index 5
         status = "Отвечен" if is_answered else "В обработке"
+        
+        # Проверяем, является ли пользователь админом
+        is_admin = await is_user_admin(callback.from_user.id)
 
         response_text = (
             f"🆘 Служба поддержки › Обращение\n\n"
@@ -4385,7 +4444,7 @@ async def view_ticket_details(callback: types.CallbackQuery):
 
         await callback.message.edit_text(
             response_text,
-            reply_markup=ticket_details_kb(ticket[0], is_answered),
+            reply_markup=ticket_details_kb(ticket[0], is_answered, is_admin),
             parse_mode="HTML"  # Меняем на HTML для тега <code>
         )
     except Exception as e:
@@ -4545,16 +4604,21 @@ async def handle_support_message(message: types.Message, state: FSMContext):
 @dp.callback_query_handler(lambda c: c.data.startswith("view_theme_"))
 async def view_theme_handler(callback: types.CallbackQuery):
     """Обработчик просмотра темы"""
+    print(f"view_theme_handler called with data: {callback.data}")
     try:
         theme_id = int(callback.data.split("_")[2])
+        print(f"Extracted theme_id: {theme_id}")
         theme = await db.get_catalog_item(theme_id)
+        print(f"Got theme: {theme}")
         
         if not theme:
+            print("Theme not found")
             await callback.answer("Тема не найдена")
             return
         
         # Получаем дочерние элементы (категории)
         children = await db.get_catalog_children(theme_id)
+        print(f"Got {len(children)} children")
         
         # Формируем описание с preview_link
         description = format_description_with_preview(theme[4], theme[7])
@@ -7665,7 +7729,7 @@ async def view_parent_handler(callback: types.CallbackQuery):
         if parent_of_current is None:
             # Если это тема (нет родителя), возвращаемся в главный каталог с удалением
             await delete_message_and_sticker(callback)
-            await handle_catalog_button(callback.message)
+            await _handle_catalog_button(callback.message)
         else:
             # Получаем родительский элемент
             parent = await db.get_catalog_item(parent_of_current)
@@ -7828,7 +7892,7 @@ async def add_product_handler(callback: types.CallbackQuery, state: FSMContext):
 @dp.callback_query_handler(lambda c: c.data == "back_to_catalog", state="*")
 async def back_to_catalog_handler(callback: types.CallbackQuery):
     """Обработчик возврата в каталог"""
-    await handle_catalog_button(callback.message)
+    await _handle_catalog_button(callback.message)
     await callback.answer()
 
 @dp.callback_query_handler(lambda c: c.data == "back_to_main", state="*")
@@ -9698,6 +9762,8 @@ async def broadcast_all_users_handler(callback: types.CallbackQuery):
     await callback.answer()
 
 
+@dp.message_handler(commands=['admins'], state='*')
+async def admins_command_handler(message: types.Message):
     """Обработчик команды /admins для админа"""
     # Проверяем права админа
     if not await is_user_admin(message.from_user.id):

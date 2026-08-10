@@ -470,11 +470,12 @@ def tickets_list_kb(tickets):
     )
     return keyboard
 
-def ticket_details_kb(ticket_id, is_answered):
+def ticket_details_kb(ticket_id, is_answered, is_admin=False):
     """Клавиатура для просмотра конкретного обращения"""
     keyboard = InlineKeyboardMarkup(row_width=1)
 
-    if not is_answered:
+    # Кнопка "Ответить" только для админов и только если не отвечен
+    if is_admin and not is_answered:
         keyboard.add(InlineKeyboardButton(
             "✉️ Ответить",
             callback_data=f"reply_to_ticket_{ticket_id}"
