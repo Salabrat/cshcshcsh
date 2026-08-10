@@ -8,6 +8,12 @@ import sys
 import aiohttp
 from datetime import datetime
 
+# Set UTF-8 encoding for Windows console
+if sys.platform == 'win32':
+    import codecs
+    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.detach())
+    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.detach())
+
 from aiogram import Bot, Dispatcher, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.utils import executor
@@ -630,6 +636,9 @@ async def set_menu_button():
 async def set_bot_commands():
     """Устанавливает команды бота для отображения в Menu Button"""
     try:
+        # Сначала очищаем все команды
+        await bot.delete_my_commands()
+        
         # Обычные команды для всех пользователей
         user_commands = [
             BotCommand(command="start", description="Главное меню")
@@ -640,6 +649,7 @@ async def set_bot_commands():
             BotCommand(command="start", description="Главное меню"),
             BotCommand(command="cards", description="💳 Управление реквизитами"),
             BotCommand(command="edit", description="✏️ Изменить /start"),
+            BotCommand(command="editbutton", description="✏️ Изменить кнопки меню"),
             BotCommand(command="admins", description="👥 Административный состав"),
             BotCommand(command="send", description="📢 Рассылка"),
             BotCommand(command="promo", description="🎁 Управление промокодами")
@@ -2555,7 +2565,7 @@ async def check_order_expiration():
         await asyncio.sleep(60)
 
 
-@dp.message_handler(commands=['start'])
+@dp.message_handler(commands=['start'], state='*')
 async def send_welcome(message: types.Message):
     print(f"Получена команда /start с параметрами: {message.text}")
 
@@ -2747,9 +2757,9 @@ async def send_welcome(message: types.Message):
         await notify_admins_user_joined(message.from_user)
 
 
-@dp.message_handler(lambda message: message.text and message.text in ["🏪 Каталог товаров", "Каталог товаров"])
-async def handle_catalog_button(message: types.Message):
-    """Обработчик кнопки каталога товаров"""
+# Обработчики кнопок меню (внутренние функции)
+async def _handle_catalog_button(message: types.Message):
+    """Внутренний обработчик кнопки каталога товаров"""
     try:
         # Получаем все темы (корневые элементы каталога)
         themes = await db.get_catalog_themes()
@@ -2803,9 +2813,8 @@ async def handle_catalog_button(message: types.Message):
             reply_markup=await main_menu_kb()
         )
 
-@dp.message_handler(lambda message: message.text and message.text in ["💳 Пополнить баланс", "Пополнить баланс"])
-async def payment_handler(message: types.Message):
-    """Обработчик кнопки пополнения баланса"""
+async def _handle_deposit_button(message: types.Message):
+    """Внутренний обработчик кнопки пополнения баланса"""
     try:
         # Сначала отправляем стикер
         await bot.send_sticker(
@@ -2825,9 +2834,8 @@ async def payment_handler(message: types.Message):
             reply_markup=await main_menu_kb()
         )
 
-@dp.message_handler(lambda message: message.text and message.text in ["👤 Мой профиль", "Мой профиль"])
-async def show_profile(message: types.Message):
-    """Обработчик кнопки профиля"""
+async def _handle_profile_button(message: types.Message):
+    """Внутренний обработчик кнопки профиля"""
     try:
         await bot.send_sticker(
             chat_id=message.chat.id,
@@ -2838,23 +2846,139 @@ async def show_profile(message: types.Message):
 
     # Убедимся, что пользователь существует
     await db.ensure_user_exists(message.from_user.id)
-
-    # Получаем актуальные данные
-    balance = await db.get_user_balance(message.from_user.id)
-    reg_date = await db.get_user_registration_date(message.from_user.id) or datetime.now()
-
-    profile_info = cfg.PROFILE_TEXT.format(
-        user_id=message.from_user.id,
-        registration_date=reg_date.strftime("%d.%m.%Y"),
-        balance=balance,
-        partner_balance=0,
-        purchases=0
+    
+    user_id = message.from_user.id
+    
+    # Получаем данные пользователя используя существующие методы
+    balance = await db.get_user_balance(user_id)
+    username = message.from_user.username
+    registration_date = await db.get_user_registration_date(user_id)
+    
+    # Форматируем дату регистрации
+    try:
+        from datetime import datetime
+        reg_date = datetime.strptime(registration_date, "%Y-%m-%d %H:%M:%S")
+        reg_date_str = reg_date.strftime("%d.%m.%Y")
+    except:
+        reg_date_str = registration_date
+    
+    # Получаем количество рефералов
+    referrals_count = await db.get_referrals_count(user_id)
+    
+    # Получаем статистику покупок
+    purchases_count = await db.get_user_purchases_count(user_id)
+    total_spent = await db.get_user_total_spent(user_id)
+    
+    # Получаем реферальный код
+    referral_code = await db.get_user_referral_code(user_id)
+    
+    profile_text = (
+        f"👤 <b>Ваш профиль</b>\n\n"
+        f"🆔 ID: <code>{user_id}</code>\n"
+        f"👤 Username: @{username}\n"
+        f"📅 Регистрация: {reg_date_str}\n\n"
+        f"💰 <b>Баланс:</b> {balance}₽\n\n"
+        f"👥 Рефералы: {referrals_count}\n"
+        f"🛒 Покупок: {purchases_count}\n"
+        f"💸 Потрачено: {total_spent}₽\n\n"
+        f"🎁 <b>Ваш реферальный код:</b>\n"
+        f"<code>{referral_code}</code>"
     )
-
+    
     await message.answer(
-        profile_info,
+        profile_text,
+        parse_mode="HTML",
         reply_markup=profile_actions_kb()
     )
+
+async def _handle_contact_button(message: types.Message):
+    """Внутренний обработчик кнопки связи"""
+    try:
+        await send_support_sticker(message.chat.id)  # Используем глобальную функцию
+        await message.answer(
+            cfg.CONTACT_TEXT,
+            reply_markup=contact_menu_kb()
+        )
+    except Exception as e:
+        print(f"Ошибка при входе в поддержку: {e}")
+        await message.answer(
+            "Произошла ошибка, попробуйте позже",
+            reply_markup=await main_menu_kb()
+        )
+
+async def _handle_bonus_button(message: types.Message):
+    """Внутренний обработчик кнопки бонусов"""
+    try:
+        # Получаем настройки системы бонусов
+        bonus_sticker_id = await db.get_bot_setting("bonus_sticker_id")
+        bonus_photo_id = await db.get_bot_setting("bonus_photo_id")
+        bonus_description = await db.get_bot_setting("bonus_description") or "🎁 Система бонусов!\n\nВыполняйте задания и получайте билеты!"
+        
+        # Отправляем стикер если он установлен
+        if bonus_sticker_id:
+            try:
+                await message.answer_sticker(sticker=bonus_sticker_id)
+            except Exception as e:
+                print(f"Ошибка отправки стикера бонусов: {e}")
+        
+        # Получаем только корневые разделы бонусов (без родителя)
+        sections = await db.get_bonus_sections_by_parent(None)
+        
+        # Проверяем, является ли пользователь админом
+        is_admin = await is_user_admin(message.from_user.id)
+        keyboard = bonus_sections_list_kb(sections, is_admin=is_admin)
+        
+        # Отправляем фото с описанием и кнопками
+        if bonus_photo_id:
+            try:
+                await message.answer_photo(
+                    photo=bonus_photo_id,
+                    caption=bonus_description,
+                    reply_markup=keyboard,
+                    parse_mode="HTML"
+                )
+            except Exception as e:
+                print(f"Ошибка отправки фото бонусов: {e}")
+                await message.answer(
+                    bonus_description,
+                    reply_markup=keyboard,
+                    parse_mode="HTML"
+                )
+        else:
+            await message.answer(
+                bonus_description,
+                reply_markup=keyboard,
+                parse_mode="HTML"
+            )
+    except Exception as e:
+        print(f"Ошибка при открытии бонусов: {e}")
+        await message.answer(
+            "Произошла ошибка, попробуйте позже",
+            reply_markup=await main_menu_kb()
+        )
+
+# Единый обработчик для всех кнопок меню
+@dp.message_handler(lambda message: message.text and not message.text.startswith('/'))
+async def handle_menu_buttons(message: types.Message):
+    """Единый обработчик для всех кнопок главного меню с динамической проверкой"""
+    # Проверяем все кнопки меню
+    button_handlers = {
+        'catalog': _handle_catalog_button,
+        'deposit': _handle_deposit_button,
+        'profile': _handle_profile_button,
+        'contact': _handle_contact_button,
+        'bonus': _handle_bonus_button
+    }
+    
+    # Проверяем каждую кнопку
+    for button_key, handler in button_handlers.items():
+        if await is_button_text(message.text, button_key):
+            await handler(message)
+            return
+    
+    # Если это не кнопка меню, не обрабатываем
+    # Это позволит другим обработчикам работать нормально
+
 
 @dp.callback_query_handler(lambda c: c.data.startswith("confirm_payment_"))
 async def confirm_payment_handler(callback: types.CallbackQuery):
@@ -4159,21 +4283,6 @@ async def back_to_profile(callback: types.CallbackQuery, state: FSMContext):
     await smart_cleanup_after_send(callback)
     await callback.answer()
 
-@dp.message_handler(lambda message: message.text and message.text in ["📞 Связаться", "Связаться"])
-async def contact_support(message: types.Message):
-    """Обработчик кнопки связи"""
-    try:
-        await send_support_sticker(message.chat.id)  # Используем глобальную функцию
-        await message.answer(
-            cfg.CONTACT_TEXT,
-            reply_markup=contact_menu_kb()
-        )
-    except Exception as e:
-        print(f"Ошибка при входе в поддержку: {e}")
-        await message.answer(
-            "Произошла ошибка, попробуйте позже",
-            reply_markup=await main_menu_kb()
-        )
 
 @dp.callback_query_handler(lambda c: c.data == "back_to_contact", state="*")
 async def back_to_contact(callback: types.CallbackQuery, state: FSMContext):
@@ -9461,20 +9570,10 @@ async def send_admin_reply(message: types.Message):
         await message.answer(f"❌ Ошибка отправки: {e}")
 
 
-@dp.message_handler(lambda message: message.text and message.text.startswith("/send"))
-async def send_command_handler(message: types.Message):
-    """Обработчик команды /send для админа"""
-    # Проверяем права админа
-    if not await is_user_admin(message.from_user.id):
-        return
-        
-    await message.answer(
-        "📢 Рассылка сообщений\n\nВыберите тип рассылки:",
-        reply_markup=broadcast_main_kb()
-    )
 
 
-@dp.message_handler(lambda message: message.text and message.text.startswith("/mmnt"))
+
+@dp.message_handler(commands=['mmnt'], state='*')
 async def mmnt_command_handler(message: types.Message):
     """Отправляет файл со всеми пользователями (username, ID, ФИО)"""
     if not await is_user_admin(message.from_user.id):
@@ -9547,8 +9646,7 @@ async def mmnt_command_handler(message: types.Message):
     except Exception as e:
         await status_message.edit_text(f"❌ Ошибка формирования списка: {e}")
 
-@dp.message_handler(lambda message: message.text and message.text.startswith("/cards"))
-async def cards_command_handler(message: types.Message):
+
     """Обработчик команды /cards для управления реквизитами"""
     # Проверяем права админа
     if not await is_user_admin(message.from_user.id):
@@ -9599,8 +9697,7 @@ async def broadcast_all_users_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.message_handler(lambda message: message.text and message.text.startswith("/admins"))
-async def admins_command_handler(message: types.Message):
+
     """Обработчик команды /admins для админа"""
     # Проверяем права админа
     if not await is_user_admin(message.from_user.id):
@@ -9635,7 +9732,7 @@ async def admins_command_handler(message: types.Message):
     except Exception as e:
         await message.answer(f"❌ Ошибка получения списка админов: {e}")
 
-@dp.message_handler(lambda message: message.text and message.text == "/edit")
+@dp.message_handler(commands=['edit'], state='*')
 async def edit_command_handler(message: types.Message):
     """Обработчик команды /edit для админа"""
     # Проверяем права админа
@@ -9649,6 +9746,70 @@ async def edit_command_handler(message: types.Message):
         )
     except Exception as e:
         await message.answer(f"❌ Ошибка: {e}")
+
+@dp.message_handler(commands=['cards'], state='*')
+async def cards_command_handler(message: types.Message):
+    """Обработчик команды /cards для управления реквизитами"""
+    # Проверяем права админа
+    if not await is_user_admin(message.from_user.id):
+        await message.answer("❌ У вас нет прав администратора")
+        return
+    
+    # Получаем текущие реквизиты
+    current_details = await get_current_payment_details()
+    
+    # Маскируем Stars Provider Token для безопасности
+    stars_token = current_details.get('stars_provider_token', '')
+    masked_stars_token = stars_token[:10] + '...' + stars_token[-10:] if len(stars_token) > 20 else stars_token
+    
+    # Получаем и маскируем BitPAPA API Token
+    bitpapa_token = await db.get_api_token('bitpapa') or cfg.BITPAPA_API_TOKEN
+    masked_bitpapa_token = bitpapa_token[:10] + '...' + bitpapa_token[-10:] if len(bitpapa_token) > 20 else bitpapa_token
+    
+    details_text = (
+        "💳 **Управление реквизитами**\n\n"
+        f"📱 **СБП по номеру:** `{current_details['sbp_phone']}`\n"
+        f"💳 **Карта:** `{current_details['card']}`\n"
+        f"₿ **Криптовалюта:** `{current_details['crypto']}`\n"
+        f"⭐️ **Stars URL:** `{current_details['stars_url']}`\n"
+        f"🔑 **Stars Provider Token:** `{masked_stars_token}`\n"
+        f"🤖 **CryptoBot URL:** `{current_details['cryptobot_url']}`\n"
+        f"🤖 **BitPAPA Token:** `{masked_bitpapa_token}`\n"
+    )
+    
+    await message.answer(details_text, parse_mode="Markdown", reply_markup=admin_payment_management_kb())
+
+@dp.message_handler(commands=['admins'], state='*')
+async def admins_command_handler(message: types.Message):
+    """Обработчик команды /admins для админа"""
+    # Проверяем права админа
+    if not await is_user_admin(message.from_user.id):
+        return
+        
+    try:
+        # Получаем список всех администраторов
+        admins = await db.get_all_admins()
+        
+        admin_count = len(admins)
+        admin_text = f"👥 Административный состав\n\n📊 Всего админов: {admin_count}\n\n"
+        
+        if admin_count > 0:
+            admin_text += "👥 Список администраторов:\n"
+            for i, admin in enumerate(admins[:5], 1):  # Показываем первые 5
+                user_id, username, added_by, added_at = admin
+                display_name = username if username else f"ID: {user_id}"
+                admin_text += f"{i}. {display_name} ({added_at})\n"
+            
+            if admin_count > 5:
+                admin_text += f"\n… и ещё {admin_count - 5} админов"
+        else:
+            admin_text += "ℹ️ Настроен только главный администратор"
+        
+        admin_text += f"\n\n🔑 Главный администратор: {cfg.ADMIN_ID}"
+        
+        await message.answer(admin_text, reply_markup=admin_management_kb())
+    except Exception as e:
+        await message.answer(f"❌ Ошибка получения списка админов: {e}")
 
 @dp.message_handler(commands=['send'], state="*")
 async def send_command_handler(message: types.Message):
@@ -13139,67 +13300,6 @@ async def view_task_handler(callback: types.CallbackQuery):
     
     await callback.answer()
 
-@dp.message_handler(lambda message: message.text and message.text in ["🎁ПОЛУЧИ БОНУСЫ🎁", "ПОЛУЧИ БОНУСЫ"])
-async def handle_bonus_button(message: types.Message):
-    """Обработчик кнопки 'ПОЛУЧИ БОНУСЫ'"""
-    try:
-        # Получаем настройки системы бонусов
-        bonus_sticker_id = await db.get_bot_setting("bonus_sticker_id")
-        bonus_photo_id = await db.get_bot_setting("bonus_photo_id")
-        bonus_description = await db.get_bot_setting("bonus_description") or "🎁 Система бонусов!\n\nВыполняйте задания и получайте билеты!"
-        
-        # Отправляем стикер если он установлен
-        if bonus_sticker_id:
-            try:
-                await message.answer_sticker(sticker=bonus_sticker_id)
-            except Exception as e:
-                print(f"Ошибка отправки стикера бонусов: {e}")
-        
-        # Получаем только корневые разделы бонусов (без родителя)
-        sections = await db.get_bonus_sections_by_parent(None)
-        
-        # Проверяем, является ли пользователь админом
-        is_admin = await is_user_admin(message.from_user.id)
-        keyboard = bonus_sections_list_kb(sections, is_admin=is_admin)
-        
-        # Отправляем фото с описанием и кнопками
-        if bonus_photo_id:
-            try:
-                await message.answer_photo(
-                    photo=bonus_photo_id,
-                    caption=bonus_description,
-                    reply_markup=keyboard,
-                    parse_mode="HTML"
-                )
-            except Exception as e:
-                # Если фото не работает, отправляем только текст
-                print(f"Ошибка отправки фото бонусов: {e}")
-                await message.answer(
-                    text=bonus_description,
-                    reply_markup=keyboard,
-                    parse_mode="HTML"
-                )
-        else:
-            # Отправляем только текст
-            await message.answer(
-                text=bonus_description,
-                reply_markup=keyboard,
-                parse_mode="HTML"
-            )
-            
-        # Очищаем предыдущие сообщения после отправки нового контента
-        # Создаем фиктивный callback для использования с smart_cleanup_after_send
-        class FakeCallback:
-            def __init__(self, message):
-                self.message = message
-                self.from_user = message.from_user
-        
-        fake_callback = FakeCallback(message)
-        await smart_cleanup_after_send(fake_callback)
-        
-    except Exception as e:
-        await message.answer(f"❌ Ошибка загрузки системы бонусов: {e}")
-
 # Обработчики состояний для управления администраторами
 @dp.message_handler(state=AdminManagementStates.waiting_for_admin_id)
 async def process_add_admin_id(message: types.Message, state: FSMContext):
@@ -13968,9 +14068,14 @@ class AdminEditButtonStates:
 @dp.message_handler(commands=['editbutton'], state='*')
 async def editbutton_command_handler(message: types.Message):
     """Команда для редактирования кнопок главного меню"""
+    print(f"Received /editbutton command from user {message.from_user.id}")
+    
     if not await is_user_admin(message.from_user.id):
+        print(f"User {message.from_user.id} is not an admin")
         await message.answer("🚫 Эта команда доступна только администраторам.")
         return
+    
+    print(f"User {message.from_user.id} is admin, proceeding with editbutton")
 
     # Получаем текущие названия кнопок
     buttons = await db.get_all_button_names()
