@@ -1,0 +1,85 @@
+/**
+ * Category Header Switch Styles
+ * Стили для смены header на панель фильтров при скролле
+ */
+
+/* Убираем возможные конфликты */
+.top-bar,
+.header,
+.shop-controls {
+    will-change: transform;
+}
+
+/* Placeholder для shop-controls чтобы избежать прыжков контента */
+.shop-controls-placeholder {
+    width: 100%;
+    visibility: hidden;
+}
+
+/* Дополнительные стили для плавности анимации */
+.shop-controls {
+    background-color: #ffffff;
+}
+
+/* Стили для sticky состояния shop-controls */
+.shop-controls[style*="position: fixed"] {
+    animation: slideDown 0.3s ease-out;
+    top: 0 !important;
+    margin-top: 0 !important;
+}
+
+/* Анимация появления сверху */
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Темная тема */
+body.dark-theme .shop-controls {
+    background-color: #1a1a1a;
+}
+
+body.dark-theme .shop-controls[style*="position: fixed"] {
+    border-bottom-color: #333 !important;
+}
+
+/* Мобильная адаптация */
+@media (max-width: 768px) {
+    .shop-controls[style*="position: fixed"] {
+        padding: 10px 15px !important;
+    }
+    
+    .shop-controls[style*="position: fixed"] .filter-dropdown,
+    .shop-controls[style*="position: fixed"] .view-controls {
+        transform: scale(0.95);
+    }
+}
+
+/* Убеждаемся что z-index правильный */
+.top-bar {
+    z-index: 1002 !important;
+}
+
+.header {
+    z-index: 1001 !important;
+}
+
+.shop-controls[style*="position: fixed"] {
+    z-index: 1000 !important;
+}
+
+/* Фикс для мега-меню чтобы оно не показывалось поверх sticky controls */
+.mega-menu {
+    z-index: 999 !important;
+}
+
+/* Плавность переходов */
+* {
+    scroll-behavior: smooth;
+}

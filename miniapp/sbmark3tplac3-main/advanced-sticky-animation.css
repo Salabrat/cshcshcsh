@@ -1,0 +1,315 @@
+/* Advanced Sticky Animation CSS - Сложная анимация меню и фильтров */
+
+/* Базовые настройки для анимации */
+.header,
+.shop-controls {
+    will-change: transform, opacity, top;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Обертка для header анимации */
+.header-animation-wrapper {
+    position: relative;
+    z-index: 98;
+    width: 100%;
+}
+
+/* Стили для разных фаз анимации */
+
+/* Фаза 1: Initial - все на своих местах */
+.shop-controls:not(.sticky) {
+    position: relative;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Фаза 2: Sliding - header опускается */
+body.header-sliding .header {
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+body.header-sliding .shop-controls {
+    position: relative;
+    z-index: 97;
+}
+
+/* Фаза 3: Swapping - происходит замена */
+body.controls-swapping .header {
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 0.7;
+    filter: blur(1px);
+}
+
+body.controls-swapping .shop-controls {
+    animation: controls-swap-up 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05),
+                0 4px 12px rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+/* Фаза 4: Swapped - controls наверху, header внизу */
+body.controls-swapped .header {
+    opacity: 0.5;
+    filter: blur(2px);
+    pointer-events: none;
+    user-select: none;
+    transition: opacity 0.3s ease;
+}
+
+body.controls-swapped .shop-controls {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0;
+    right: 0;
+    z-index: 99;
+    background: white;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.1),
+                0 4px 16px rgba(0, 0, 0, 0.1);
+    animation: none;
+}
+
+/* Анимации */
+@keyframes controls-swap-up {
+    0% {
+        opacity: 0.8;
+        transform: translateY(30px) scale(0.98);
+    }
+    50% {
+        opacity: 0.9;
+        transform: translateY(10px) scale(0.99);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes header-slide-down {
+    from {
+        transform: translateY(0);
+    }
+    to {
+        transform: translateY(100%);
+    }
+}
+
+/* Placeholder для controls */
+.controls-placeholder {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+/* Клон controls для анимации */
+.shop-controls-clone {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 97;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+/* Эффекты при переходах */
+.shop-controls.swapping {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.shop-controls.swapped {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Анимация содержимого controls при переходах */
+.shop-controls.swapping .shop-info,
+.shop-controls.swapping .shop-actions {
+    animation: content-fade-in 0.6s ease forwards;
+}
+
+@keyframes content-fade-in {
+    0% {
+        opacity: 0.5;
+        transform: translateY(5px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Специальные стили для фильтров в sticky режиме */
+.shop-controls.sticky .filter-dropdown .filter-menu {
+    position: fixed;
+    top: 60px; /* Высота sticky controls */
+    margin-top: 0;
+}
+
+.shop-controls.swapped .filter-dropdown .filter-menu {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* Адаптация view controls */
+.shop-controls.swapping .view-controls {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: flex !important;
+    transition: opacity 0.3s ease;
+}
+
+.shop-controls.swapped .view-controls {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: flex !important;
+}
+
+/* Убеждаемся что view-controls всегда видимы */
+.view-controls,
+.shop-controls .view-controls,
+.shop-controls:hover .view-controls,
+.shop-controls[style] .view-controls {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: flex !important;
+    pointer-events: auto !important;
+}
+
+/* SVG иконки в view-btn всегда видимы */
+.view-btn svg,
+.view-controls .view-btn svg,
+.shop-controls .view-btn svg {
+    opacity: 1 !important;
+    visibility: visible !important;
+    stroke: currentColor !important;
+}
+
+/* Визуальные индикаторы состояния */
+.shop-controls::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, 
+        transparent 0%,
+        rgba(0, 0, 0, 0.1) 50%,
+        transparent 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.shop-controls.swapping::before {
+    opacity: 1;
+    animation: slide-indicator 1s ease infinite;
+}
+
+@keyframes slide-indicator {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* Улучшенная тень для sticky состояния */
+.shop-controls.sticky {
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05),
+                0 2px 4px rgba(0, 0, 0, 0.05),
+                0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+.shop-controls.sticky:hover {
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08),
+                0 2px 4px rgba(0, 0, 0, 0.08),
+                0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Мобильная адаптация */
+@media (max-width: 768px) {
+    body.controls-swapping .shop-controls {
+        animation-duration: 0.3s;
+    }
+    
+    .shop-controls.swapped {
+        padding: 10px 15px;
+    }
+    
+    body.controls-swapped .header {
+        display: none; /* Скрываем header на мобильных после swap */
+    }
+}
+
+/* Плавные переходы для всех состояний */
+* {
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Оптимизация производительности */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    
+    .shop-controls,
+    .header {
+        transition: none !important;
+        animation: none !important;
+    }
+}
+
+/* Дополнительные эффекты для улучшения UX */
+.shop-controls {
+    position: relative;
+    overflow: visible;
+}
+
+.shop-controls::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(0, 0, 0, 0.1) 20%,
+        rgba(0, 0, 0, 0.1) 80%,
+        transparent 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.shop-controls.sticky::after {
+    opacity: 1;
+}
+
+/* Z-index управление для правильного наложения */
+.top-bar {
+    z-index: 101;
+}
+
+.header {
+    z-index: 98;
+}
+
+.shop-controls {
+    z-index: 97;
+}
+
+.shop-controls.sticky {
+    z-index: 99;
+}
+
+.shop-controls.swapped {
+    z-index: 100;
+}

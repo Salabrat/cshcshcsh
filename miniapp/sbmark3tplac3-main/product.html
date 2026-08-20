@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Товар - C.P. COMPANY</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-wrapper">
+            <!-- Logo -->
+            <div class="logo">
+                <a href="index.html">
+                    <!-- Logo will be loaded dynamically via JavaScript -->
+                </a>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="main-nav" id="mainNav">
+                <ul class="nav-list">
+                    <li class="nav-item has-dropdown">
+                        <a href="#" class="nav-link">SHOP</a>
+                        <!-- Mega Menu -->
+                        <div class="mega-menu" id="megaMenu">
+                            <div class="mega-menu-content">
+                                <!-- Tabs -->
+                                <div class="mega-menu-tabs">
+                                    <button class="mega-menu-tab active" data-tab="main-collection">MAIN COLLECTION</button>
+                                    <button class="mega-menu-tab" data-tab="brand-collection">BRAND</button>
+                                </div>
+                                
+                                <!-- Main Collection Tab Content -->
+                                <div class="mega-menu-tab-content active" id="main-collection">
+                                    <div class="mega-menu-single-column">
+                                        <div class="mega-menu-section">
+                                            <ul class="mega-menu-list">
+                                                <li><a href="shop-all.html" class="mega-menu-link"><span class="arrow">></span> SHOP ALL</a></li>
+                                                <li><a href="category-jackets.html" class="mega-menu-link"><span class="arrow">></span> КУРТКИ</a></li>
+                                                <li><a href="category-shoes.html" class="mega-menu-link"><span class="arrow">></span> ОБУВЬ</a></li>
+                                                <li><a href="category-coats.html" class="mega-menu-link"><span class="arrow">></span> ПАЛЬТО</a></li>
+                                                <li><a href="category-sweaters.html" class="mega-menu-link"><span class="arrow">></span> КОФТЫ</a></li>
+                                                <li><a href="category-glasses.html" class="mega-menu-link"><span class="arrow">></span> ОЧКИ</a></li>
+                                                <li><a href="category-pants.html" class="mega-menu-link"><span class="arrow">></span> ШТАНЫ</a></li>
+                                                <li><a href="category-hats.html" class="mega-menu-link"><span class="arrow">></span> ГОЛОВНОЙ УБОР</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Brand Tab Content -->
+                                <div class="mega-menu-tab-content" id="brand-collection">
+                                    <div class="mega-menu-single-column">
+                                        <div class="mega-menu-section">
+                                            <ul class="mega-menu-list" id="brandMenuList">
+                                                <!-- Brands will be loaded dynamically -->
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Header Actions -->
+            <div class="header-actions">
+                <button class="header-icon search-btn" aria-label="Search">SEARCH</button>
+                <button class="header-icon mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Search Overlay -->
+    <div class="search-overlay" id="searchOverlay">
+        <div class="search-content">
+            <button class="search-close" id="searchClose">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <form class="search-form">
+                <input type="search" placeholder="Search..." class="search-input">
+                <button type="submit" class="search-submit">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb">
+        <div class="container">
+            <span id="breadcrumbContent">
+                <a href="index.html">HOME</a> / <a href="shop-all.html">SHOP</a> / <span id="breadcrumbCategory">LOADING...</span> / <span id="breadcrumbProduct">LOADING...</span>
+            </span>
+        </div>
+    </nav>
+
+    <!-- Product Page -->
+    <main class="product-main">
+        <div class="product-container">
+            <!-- Product Images (Left Side - Scrollable) -->
+            <div class="product-images">
+                <div class="image-gallery" id="imageGallery">
+                    <!-- Images will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Product Info (Right Side - Fixed) -->
+            <div class="product-info">
+                <div class="product-details">
+                    <div class="product-breadcrumb">
+                        <span id="productBreadcrumb">SHOP / MAIN COLLECTION / CLOTHING / KOFFEE & DENIM</span>
+                    </div>
+                    
+                    <h1 class="product-title" id="productTitle">LOADING...</h1>
+                    <div class="product-price-display" id="productPriceDisplay">Загрузка цены...</div>
+                    
+                    <div class="product-colors">
+                        <span class="color-label" id="productColor">ЦВЕТ: DARK SHADOW - GREY</span>
+                        <div class="color-options" id="colorOptions">
+                            <!-- Color swatches will be added here -->
+                        </div>
+                    </div>
+                    
+                    <div class="product-pricing">
+                        <span class="price-label">РАЗМЕР</span>
+                        <span class="size-guide">РАЗМЕРНАЯ ТАБЛИЦА</span>
+                    </div>
+                    
+                    <div class="size-selector" id="sizeSelector">
+                        <!-- Size options will be loaded here -->
+                    </div>
+                    
+                    <button class="add-to-wishlist">ADD TO WISHLIST</button>
+                    
+                    <div class="product-sections">
+                        <div class="product-section">
+                            <button class="section-toggle active" data-section="description">
+                                ОПИСАНИЕ
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
+                            <div class="section-content active" id="descriptionContent">
+                                <p id="productDescription">Loading...</p>
+                                <button class="read-more">ЧИТАТЬ ДАЛЕЕ</button>
+                            </div>
+                        </div>
+                        
+                        <div class="product-section">
+                            <button class="section-toggle" data-section="care">
+                                УХОД ЗА ИЗДЕЛИЕМ И СОСТАВ
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
+                            <div class="section-content" id="careContent">
+                                <p>Инструкции по уходу за изделием будут добавлены.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="product-section">
+                            <button class="section-toggle" data-section="delivery">
+                                ДОСТАВКА И ВОЗВРАТ
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
+                            <div class="section-content" id="deliveryContent">
+                                <p>Информация о доставке и возврате будет добавлена.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="product-section">
+                            <button class="section-toggle" data-section="size">
+                                РАЗМЕР И ПОСАДКА
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
+                            <div class="section-content" id="sizeContent">
+                                <p>Информация о размерах и посадке будет добавлена.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="product-section">
+                            <button class="section-toggle" data-section="passport">
+                                PRODUCT PASSPORT
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
+                            <div class="section-content" id="passportContent">
+                                <p>Паспорт товара будет добавлен.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="product-tags">
+                        <span class="product-tag" id="productTag">ТЭГИ GORE G-TYPE ↓</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-menu-overlay" id="mobileMenuOverlay"></div>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <div class="mobile-menu-header">
+            <div class="mobile-menu-logo">
+                <svg width="60" height="40" viewBox="0 0 60 40" fill="none">
+                    <text x="0" y="20" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="currentColor">C.P.</text>
+                    <text x="0" y="32" font-family="Arial, sans-serif" font-size="8" font-weight="normal" fill="currentColor">COMPANY</text>
+                </svg>
+            </div>
+            <button class="mobile-menu-close" id="mobileMenuClose">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <nav class="mobile-menu-nav">
+            <ul class="mobile-menu-list">
+                <li class="mobile-menu-item has-dropdown">
+                    <a href="#" class="mobile-menu-link shop-menu-toggle" id="shopMenuToggle">
+                        SHOP
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="dropdown-arrow">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </a>
+                    <ul class="mobile-dropdown-menu" id="shopDropdown">
+                        <li class="mobile-dropdown-item">
+                            <a href="shop-all.html" class="mobile-dropdown-link">SHOP ALL</a>
+                        </li>
+                        <li class="mobile-dropdown-item expandable">
+                            <a href="#" class="mobile-dropdown-link focus-toggle">
+                                CATEGORIES
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="focus-arrow">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </a>
+                            <ul class="mobile-dropdown-nested">
+                                <li><a href="category-jackets.html" class="mobile-dropdown-nested-link">КУРТКИ</a></li>
+                                <li><a href="category-shoes.html" class="mobile-dropdown-nested-link">ОБУВЬ</a></li>
+                                <li><a href="category-coats.html" class="mobile-dropdown-nested-link">ПАЛЬТО</a></li>
+                                <li><a href="category-sweaters.html" class="mobile-dropdown-nested-link">КОФТЫ</a></li>
+                                <li><a href="category-glasses.html" class="mobile-dropdown-nested-link">ОЧКИ</a></li>
+                                <li><a href="category-pants.html" class="mobile-dropdown-nested-link">ШТАНЫ</a></li>
+                                <li><a href="category-hats.html" class="mobile-dropdown-nested-link">ГОЛОВНОЙ УБОР</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
+                <li class="mobile-menu-item has-dropdown">
+                    <a href="#" class="mobile-menu-link brand-menu-toggle" id="brandMenuToggle">
+                        BRAND
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="dropdown-arrow">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </a>
+                    <ul class="mobile-dropdown-menu" id="mobileBrandsList">
+                        <!-- Brands will be loaded dynamically -->
+                    </ul>
+                </li>
+            </ul>
+        </nav>
+    </div>
+
+    <script src="script.js"></script>
+    <script src="product-manager.js"></script>
+    <script src="product-page.js"></script>
+    <script src="dynamic-categories-menu.js"></script>
+    <!-- Breadcrumb SHOP menu integration -->
+    <script src="breadcrumb-shop-menu.js"></script>
+    <!-- Mega menu tabs functionality -->
+    <script src="mega-menu-tabs.js"></script>
+    <!-- Search functionality with autocomplete -->
+    <script src="search.js"></script>
+    <!-- Load header logo -->
+    <script src="load-header-logo.js"></script>
+    <!-- Load custom menu labels -->
+    <script src="load-menu-labels.js"></script>
+</body>
+</html>

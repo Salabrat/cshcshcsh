@@ -1,0 +1,64 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Build output
+dist/
+build/
+*.min.css
+*.min.js
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Telegram Bot Config (contains sensitive token)
+telegram-bot-config.json
+
+# Temporary files
+*.tmp
+temp/
+tmp/
+
+# Coverage reports
+coverage/
+.nyc_output/
+
+# Editor backup files
+*.bak
+*.orig
+
+# Python cache (if using Python server)
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Testing
+.jest/
+.cypress/
+
+# Misc
+.cache/
+.parcel-cache/

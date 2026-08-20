@@ -1,0 +1,5 @@
+{
+  "botToken": "YOUR_BOT_TOKEN_HERE",
+  "telegramUsername": "your_telegram_username",
+  "messageTemplate": "Здравствуйте! Заинтересовал данный товар: {productLink}"
+}

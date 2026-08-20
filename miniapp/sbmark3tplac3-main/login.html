@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Войти или создать личный кабинет - C.P. Company</title>
+    <link rel="stylesheet" href="login.css">
+    <link rel="stylesheet" href="fonts/akony.css">
+</head>
+<body>
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle-login" id="themeToggleLogin" aria-label="Toggle theme">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+    </button>
+    
+    <div class="login-container">
+        <!-- Left side - Image -->
+        <div class="login-image">
+            <img id="loginPageImage" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="C.P. Company Model">
+        </div>
+
+        <!-- Right side - Form -->
+        <div class="login-form-container">
+            <div class="login-form-wrapper">
+                <!-- Close button -->
+                <button class="login-close-btn" id="loginCloseBtn" aria-label="Закрыть">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+                
+                <h1 class="login-title">ВОЙТИ ИЛИ СОЗДАТЬ<br>ЛИЧНЫЙ КАБИНЕТ</h1>
+                
+                <form class="login-form" id="loginForm">
+                    <div class="form-group">
+                        <label for="email" class="form-label">АДРЕС ЭЛЕКТРОННОЙ ПОЧТЫ <span class="required">*</span></label>
+                        <input type="email" id="email" name="email" class="form-input" placeholder="Enter email address" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password" class="form-label">ПАРОЛЬ <span class="required">*</span></label>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="password" name="password" class="form-input" placeholder="Enter password" required>
+                            <button type="button" class="password-toggle" id="passwordToggle">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-options">
+                        <label class="checkbox-wrapper">
+                            <input type="checkbox" id="rememberMe" name="rememberMe">
+                            <span class="checkmark"></span>
+                            Запомнить меня
+                        </label>
+                        <a href="#" class="forgot-password">ЗАБЫЛИ ПАРОЛЬ?</a>
+                    </div>
+
+                    <button type="submit" class="login-btn">Вход</button>
+                </form>
+
+                <div class="divider">
+                    <hr>
+                </div>
+
+                <div class="new-customer-section">
+                    <h2 class="new-customer-title">Новые клиенты</h2>
+                    <p class="new-customer-text">
+                        Зарегистрировавшись, Вы получите возможность совершать покупки быстрее, сохранять несколько адресов доставки, проверить свои заказы в режиме реального времени и многое другое.
+                    </p>
+                    <button type="button" class="create-account-btn">СОЗДАТЬ СВОЮ УЧЕТНУЮ ЗАПИСЬ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- iOS Video Autoplay Fix -->
+    <script src="ios-video-fix.js"></script>
+
+    <script src="login.js"></script>
+    <script>
+        // Load login image/video from server
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                const response = await fetch('/api/login-image');
+                const data = await response.json();
+                if (data.loginImage) {
+                    const url = data.loginImage;
+                    const isVideo = /\.(mp4|webm|ogg|mov)$/i.test(url);
+                    const imgElement = document.getElementById('loginPageImage');
+                    const container = imgElement.parentElement;
+                    
+                    if (isVideo) {
+                        // Create video element
+                        let video = container.querySelector('video.login-media-video');
+                        if (!video) {
+                            video = document.createElement('video');
+                            video.className = 'login-media-video';
+                            video.style.cssText = 'width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0;';
+                            video.muted = true;
+                            video.loop = true;
+                            video.playsInline = true;
+                            video.autoplay = true;
+                            video.setAttribute('playsinline', '');
+                            video.setAttribute('webkit-playsinline', '');
+                            container.insertBefore(video, imgElement);
+                        }
+                        video.src = url;
+                        video.load();
+                        video.play().catch(err => console.warn('Login video autoplay blocked:', err));
+                        imgElement.style.display = 'none';
+                    } else {
+                        // Remove any existing video
+                        const existingVideo = container.querySelector('video.login-media-video');
+                        if (existingVideo) {
+                            existingVideo.pause();
+                            existingVideo.remove();
+                        }
+                        imgElement.src = url;
+                        imgElement.style.display = '';
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading login image:', error);
+                // Keep default image if error
+            }
+        });
+    </script>
+</body>
+</html>

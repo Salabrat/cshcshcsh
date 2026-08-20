@@ -1,0 +1,28 @@
+{
+  "logoImages": [
+    {
+      "url": "/uploads/video-1771284082678-369619653.mp4",
+      "type": "video"
+    },
+    {
+      "url": "/uploads/video-1771284083552-82359090.mp4",
+      "type": "video"
+    }
+  ],
+  "loadingScreenImage": "/uploads/video-1771863676412-290340270.mp4",
+  "rouletteCoverImage": "/uploads/image-1771837725555-599885692.jpg",
+  "catalogCovers": [
+    {
+      "url": "/uploads/catalog-cover-1772722079068-46715217.mp4",
+      "type": "video"
+    },
+    {
+      "url": "/uploads/video-1771283656599-332509863.mp4",
+      "type": "video"
+    }
+  ],
+  "rouletteBannerMedia": {
+    "url": "/uploads/video-1771345002620-650102889.mp4",
+    "type": "video"
+  }
+}

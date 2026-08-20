@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Mobile Menu</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Force mobile styles for testing */
+        .mobile-menu-btn {
+            display: flex !important;
+            background: red !important;
+            color: white !important;
+            padding: 10px !important;
+            border: 2px solid black !important;
+        }
+        .main-nav {
+            display: none !important;
+        }
+        .debug-info {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: yellow;
+            padding: 10px;
+            z-index: 9999;
+            font-size: 12px;
+            max-width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-info" id="debugInfo">
+        Debug Info Loading...
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-wrapper">
+            <!-- Logo -->
+            <div class="logo">
+                <a href="index.html">
+                    <svg width="60" height="40" viewBox="0 0 60 40" fill="none">
+                        <text x="0" y="20" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="currentColor">C.P.</text>
+                        <text x="0" y="32" font-family="Arial, sans-serif" font-size="8" font-weight="normal" fill="currentColor">COMPANY</text>
+                    </svg>
+                </a>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="main-nav" id="mainNav">
+                <ul class="nav-list">
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">SHOP</a>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Header Actions -->
+            <div class="header-actions">
+                <button class="header-icon mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-menu-overlay" id="mobileMenuOverlay"></div>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <div class="mobile-menu-header">
+            <div class="mobile-menu-logo">
+                <h3>MOBILE MENU</h3>
+            </div>
+            <button class="mobile-menu-close" id="mobileMenuClose" style="background: red !important; color: white !important; padding: 10px !important;">
+                CLOSE X
+            </button>
+        </div>
+        <nav class="mobile-menu-nav">
+            <ul class="mobile-menu-list">
+                <li class="mobile-menu-item">
+                    <a href="#" class="mobile-menu-link">TEST MENU ITEM</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+
+    <main style="padding: 50px; text-align: center; margin-top: 100px;">
+        <h1>Debug Mobile Menu</h1>
+        <p>The hamburger button should be RED and visible.</p>
+        <p>Click it to test the mobile menu.</p>
+        <button onclick="testMenu()" style="padding: 10px; background: green; color: white; border: none; margin: 10px;">
+            Manual Test Menu
+        </button>
+    </main>
+
+    <script>
+        function updateDebugInfo() {
+            const debugInfo = document.getElementById('debugInfo');
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const mobileMenu = document.getElementById('mobileMenu');
+            const mobileMenuClose = document.getElementById('mobileMenuClose');
+            const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+            
+            debugInfo.innerHTML = `
+                Btn: ${!!mobileMenuBtn ? 'YES' : 'NO'}<br>
+                Menu: ${!!mobileMenu ? 'YES' : 'NO'}<br>
+                Close: ${!!mobileMenuClose ? 'YES' : 'NO'}<br>
+                Overlay: ${!!mobileMenuOverlay ? 'YES' : 'NO'}<br>
+                Menu Active: ${mobileMenu && mobileMenu.classList.contains('active') ? 'YES' : 'NO'}
+            `;
+        }
+
+        function testMenu() {
+            console.log('Manual test triggered');
+            const mobileMenu = document.getElementById('mobileMenu');
+            const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+            
+            if (mobileMenu && mobileMenuOverlay) {
+                mobileMenu.classList.add('active');
+                mobileMenuOverlay.classList.add('active');
+                document.body.style.overflow = 'hidden';
+                console.log('Menu should be open now');
+                updateDebugInfo();
+            }
+        }
+
+        // Main mobile menu script
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing mobile menu...');
+            
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const mobileMenu = document.getElementById('mobileMenu');
+            const mobileMenuClose = document.getElementById('mobileMenuClose');
+            const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+            
+            updateDebugInfo();
+            
+            console.log('Elements:', {
+                btn: !!mobileMenuBtn,
+                menu: !!mobileMenu,
+                close: !!mobileMenuClose,
+                overlay: !!mobileMenuOverlay
+            });
+            
+            if (mobileMenuBtn) {
+                console.log('Adding click listener to button');
+                mobileMenuBtn.onclick = function(e) {
+                    e.preventDefault();
+                    console.log('Button clicked!');
+                    
+                    if (mobileMenu && mobileMenuOverlay) {
+                        console.log('Opening menu...');
+                        mobileMenu.classList.add('active');
+                        mobileMenuOverlay.classList.add('active');
+                        document.body.style.overflow = 'hidden';
+                        updateDebugInfo();
+                    } else {
+                        console.log('Menu or overlay not found!');
+                    }
+                };
+            } else {
+                console.log('Mobile menu button not found!');
+            }
+            
+            if (mobileMenuClose) {
+                mobileMenuClose.onclick = function(e) {
+                    e.preventDefault();
+                    console.log('Close button clicked!');
+                    
+                    if (mobileMenu && mobileMenuOverlay) {
+                        mobileMenu.classList.remove('active');
+                        mobileMenuOverlay.classList.remove('active');
+                        document.body.style.overflow = '';
+                        updateDebugInfo();
+                    }
+                };
+            }
+            
+            if (mobileMenuOverlay) {
+                mobileMenuOverlay.onclick = function() {
+                    console.log('Overlay clicked!');
+                    
+                    if (mobileMenu) {
+                        mobileMenu.classList.remove('active');
+                        mobileMenuOverlay.classList.remove('active');
+                        document.body.style.overflow = '';
+                        updateDebugInfo();
+                    }
+                };
+            }
+        });
+    </script>
+</body>
+</html>

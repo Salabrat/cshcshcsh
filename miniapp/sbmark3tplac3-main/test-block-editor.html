@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Block Editor Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            background: #f8f8f8;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 40px;
+            font-size: 32px;
+        }
+        
+        /* Campaign styles similar to main site */
+        .campaign-section {
+            background: white;
+            margin-bottom: 40px;
+            padding: 60px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+        
+        .campaign-content,
+        .campaign-split-content {
+            position: relative;
+            text-align: center;
+        }
+        
+        .campaign-label {
+            font-size: 12px;
+            letter-spacing: 2px;
+            color: #999;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+        
+        .campaign-title {
+            font-size: 36px;
+            font-weight: 700;
+            color: #222;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+        
+        .campaign-description {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 30px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 14px 32px;
+            background: #333;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            background: #000;
+            transform: translateY(-2px);
+        }
+        
+        .btn-outline-white {
+            background: transparent;
+            border: 2px solid #333;
+            color: #333;
+        }
+        
+        .btn-outline-white:hover {
+            background: #333;
+            color: white;
+        }
+        
+        .admin-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 999;
+        }
+        
+        .admin-status.logged-in {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .admin-controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 999;
+        }
+        
+        .admin-btn {
+            padding: 10px 20px;
+            background: white;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .admin-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+        
+        .admin-btn.primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .divider {
+            height: 1px;
+            background: #e0e0e0;
+            margin: 40px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-status" id="adminStatus">
+        Checking admin status...
+    </div>
+    
+    <div class="admin-controls">
+        <button class="admin-btn primary" onclick="loginAdmin()">Login as Admin</button>
+        <button class="admin-btn" onclick="forceInitBlockEditor()">Force Init Block Editor</button>
+        <button class="admin-btn" onclick="location.reload()">Reload Page</button>
+    </div>
+    
+    <div class="container">
+        <h1>📝 Block Editor Test Page</h1>
+        
+        <!-- Test Campaign Block 1 -->
+        <div class="campaign-section">
+            <div class="campaign-content">
+                <p class="campaign-label" data-original-content="FALL WINTER 025">FALL WINTER 025</p>
+                <h2 class="campaign-title" data-original-content="FW025 ADV<br>CAMPAIGN">FW025 ADV<br>CAMPAIGN</h2>
+                <p class="campaign-description" data-original-content="Sportswear, Not for playing in">Sportswear, Not for playing in</p>
+                <a href="#" class="btn btn-outline-white" data-text-id="campaign1-btn">DISCOVER MORE</a>
+            </div>
+        </div>
+        
+        <div class="divider"></div>
+        
+        <!-- Test Campaign Block 2 -->
+        <div class="campaign-section">
+            <div class="campaign-split-content">
+                <p class="campaign-label" data-original-content="FALL WINTER 025">FALL WINTER 025</p>
+                <h2 class="campaign-title" data-original-content="PUFFER">PUFFER</h2>
+                <p class="campaign-description" data-original-content="Cold-Weather Icons: soft-touch essentials in updated colourways">Cold-Weather Icons: soft-touch essentials in updated colourways</p>
+                <a href="#" class="btn btn-outline-white" data-text-id="campaign2-btn">DISCOVER MORE</a>
+            </div>
+        </div>
+        
+        <div class="divider"></div>
+        
+        <!-- Test Campaign Block 3 -->
+        <div class="campaign-section">
+            <div class="campaign-split-content">
+                <p class="campaign-label" data-original-content="FALL WINTER 025">FALL WINTER 025</p>
+                <h2 class="campaign-title" data-original-content="THE METROPOLIS<br>SERIES">THE METROPOLIS<br>SERIES</h2>
+                <p class="campaign-description" data-original-content="Functionality and performance for the contemporary urban environment">Functionality and performance for the contemporary urban environment</p>
+                <a href="#" class="btn btn-outline-white" data-text-id="campaign3-btn">DISCOVER MORE</a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Load admin scripts -->
+    <script src="security-check.js"></script>
+    <script src="admin-loader.js"></script>
+    
+    <script>
+        // Check admin status
+        async function checkAdminStatus() {
+            const statusDiv = document.getElementById('adminStatus');
+            const token = localStorage.getItem('adminToken');
+            
+            if (!token) {
+                statusDiv.className = 'admin-status';
+                statusDiv.textContent = '🔒 Not logged in';
+                return false;
+            }
+            
+            try {
+                const response = await fetch('/api/check-admin', {
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.isAdmin) {
+                        statusDiv.className = 'admin-status logged-in';
+                        statusDiv.textContent = '✅ Admin Mode Active';
+                        return true;
+                    }
+                }
+            } catch (error) {
+                console.error('Admin check error:', error);
+            }
+            
+            statusDiv.className = 'admin-status';
+            statusDiv.textContent = '🔒 Not logged in';
+            return false;
+        }
+        
+        // Login as admin
+        async function loginAdmin() {
+            const username = prompt('Enter username:', 'admin');
+            const password = prompt('Enter password:', 'admin123');
+            
+            if (!username || !password) return;
+            
+            try {
+                const response = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('adminToken', data.token);
+                    localStorage.setItem('adminLoggedIn', 'true');
+                    window.isAdminUser = true;
+                    
+                    alert('✅ Login successful! Page will reload...');
+                    setTimeout(() => location.reload(), 500);
+                } else {
+                    alert('❌ Login failed. Check credentials.');
+                }
+            } catch (error) {
+                alert('❌ Login error: ' + error.message);
+            }
+        }
+        
+        // Force initialize block editor
+        function forceInitBlockEditor() {
+            if (!localStorage.getItem('adminToken')) {
+                alert('Please login as admin first!');
+                return;
+            }
+            
+            console.log('Force initializing block editor...');
+            
+            if (window.blockEditor) {
+                window.blockEditor.init();
+                console.log('Block editor initialized');
+                alert('✅ Block editor initialized! Look for "📝 Изменить блок" buttons on campaign blocks.');
+            } else {
+                console.log('Block editor not loaded yet');
+                alert('⏳ Block editor is still loading. Please wait a moment and try again.');
+            }
+        }
+        
+        // Check status on load
+        window.addEventListener('load', () => {
+            checkAdminStatus();
+            
+            // Log available editors after a delay
+            setTimeout(() => {
+                console.log('Available editors:');
+                if (window.blockEditor) {
+                    console.log('✅ blockEditor is loaded');
+                } else {
+                    console.log('❌ blockEditor not loaded');
+                }
+                if (window.simpleAdminEditor) {
+                    console.log('✅ simpleAdminEditor is loaded');
+                }
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

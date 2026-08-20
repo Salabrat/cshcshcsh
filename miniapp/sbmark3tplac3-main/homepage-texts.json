@@ -1,0 +1,32 @@
+{
+  "hero": {
+    "title": "ЛУЧШИЙ<br>БРЕНДОВЫЙ<br>МАГАЗИН",
+    "subtitle": "г. МОСКВА ЦУМ"
+  },
+  "trending": {
+    "label": "ТОП"
+  },
+  "campaign1": {
+    "label": "",
+    "title": "",
+    "description": ""
+  },
+  "campaign2": {
+    "label": "",
+    "title": "",
+    "description": ""
+  },
+  "campaign3": {
+    "label": "",
+    "title": "",
+    "description": ""
+  },
+  "about": {
+    "title": "",
+    "text": "",
+    "item1Title": "",
+    "item2Title": "",
+    "item1Category": "КУРТКИ/ВЕТРОВКИ/СВЭГ ПОЛНЫЙ",
+    "item2Category": "КУРТКИ/ВЕТРОВКИ/СВЭГ ПОЛНЫЙ"
+  }
+}

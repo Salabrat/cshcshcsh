@@ -1,0 +1,584 @@
+/* Product Modal Styles */
+.product-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: white;
+    z-index: 9999;
+    overflow: hidden;
+}
+
+.product-modal-overlay.active {
+    display: block;
+}
+
+.product-modal-container {
+    position: relative;
+    width: 100%;
+    min-height: 100vh;
+    background: white;
+}
+
+.product-modal-content {
+    background: white;
+    width: 100%;
+    max-width: 100%;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    transform: scale(1);
+}
+
+.product-modal-header {
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    z-index: 10001;
+}
+
+.product-modal-close {
+    background: rgba(0, 0, 0, 0.5);
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.product-modal-close:hover {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.product-modal-close svg {
+    color: white;
+}
+
+.product-modal-body {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 100vh;
+    padding: 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.product-modal-images {
+    position: relative;
+    width: 60%;
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: #f5f5f5;
+    padding: 60px 0 50px 0;
+    direction: rtl; /* Перемещаем полосу прокрутки влево по умолчанию */
+}
+
+.product-image-container {
+    position: relative;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    direction: ltr; /* Возвращаем нормальное направление для контента */
+}
+
+.product-image-container img {
+    width: 100%;
+    height: auto;
+    object-fit: cover; /* Изменено с contain на cover для полного заполнения */
+    display: block;
+    margin-bottom: 0;
+}
+
+.image-navigation {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 20px;
+    pointer-events: none;
+}
+
+.image-nav-btn {
+    background: rgba(0, 0, 0, 0.5);
+    border: none;
+    border-radius: 0; /* Убираем скругление для квадратной формы */
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    pointer-events: auto;
+}
+
+.image-nav-btn:hover {
+    background: rgba(0, 0, 0, 0.7);
+    transform: scale(1.1);
+}
+
+.image-nav-btn svg {
+    color: white;
+}
+
+.image-indicators {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+}
+
+.image-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.image-indicator.active {
+    background: white;
+    transform: scale(1.2);
+}
+
+.product-modal-info {
+    width: 40%;
+    padding: 30px;
+    background: white;
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 10;
+    padding-top: 80px;
+}
+
+.product-breadcrumb {
+    font-size: 14px; /* Увеличено с 11px на 14px */
+    color: #666;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.product-modal-title {
+    font-size: 23px; /* Увеличено с 20px на 23px */
+    font-weight: 700;
+    margin: 0 0 8px 0;
+    color: #000;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Subtitle removed as per request */
+
+/* Color options removed as per request */
+
+.product-modal-price {
+    font-size: 19px; /* Увеличено с 16px на 19px */
+    font-weight: 600;
+    color: #000;
+    margin: 10px 0;
+    text-align: right;
+}
+
+.product-modal-price.has-discount {
+    display: inline-flex;
+    gap: 10px;
+    align-items: baseline;
+    justify-content: flex-end;
+}
+
+.product-modal-price .price-old {
+    font-size: 16px;
+    color: #9b9b9b;
+    text-decoration: line-through;
+}
+
+.product-modal-price .price-new {
+    font-size: 20px;
+    color: #000;
+}
+
+.product-modal-sizes h4 {
+    font-size: 15px; /* Увеличено с 12px на 15px */
+    font-weight: 600;
+    margin: 0 0 8px 0;
+    color: #000;
+    text-transform: uppercase;
+}
+
+.size-options {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 15px;
+}
+
+.size-option {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    background: white;
+    font-weight: 500;
+    color: #000;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+    min-width: 35px;
+    text-align: center;
+    font-size: 15px; /* Увеличено с 12px на 15px */
+}
+
+.size-option:hover {
+    border-color: #000;
+    background: #f5f5f5;
+}
+
+.size-option.selected {
+    background: #000;
+    color: white;
+    border-color: #000;
+}
+
+.add-to-wishlist-btn {
+    width: 100%;
+    padding: 10px;
+    background: white;
+    border: 1px solid #000;
+    color: #000;
+    font-weight: 600;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: 10px;
+    font-size: 15px; /* Увеличено с 12px на 15px */
+}
+
+.add-to-wishlist-btn:hover {
+    background: #000;
+    color: white;
+}
+
+.product-description-section {
+    margin-top: 10px;
+}
+
+.description-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-top: 1px solid #eee;
+    cursor: pointer;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 14px; /* Увеличено с 11px на 14px */
+}
+
+.description-toggle:hover {
+    background: #f9f9f9;
+}
+
+.description-content {
+    padding: 6px 0;
+    color: #666;
+    line-height: 1.3;
+    font-size: 14px; /* Увеличено с 11px на 14px */
+    display: none;
+}
+
+.description-content.active {
+    display: block;
+}
+
+.product-tag {
+    display: inline-block;
+    background: #f0f0f0;
+    padding: 4px 8px;
+    margin-top: 10px;
+    font-size: 13px; /* Увеличено с 10px на 13px */
+    text-transform: uppercase;
+    color: #666;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .product-modal-overlay {
+        overflow-y: auto; /* Включаем прокрутку для всего модального окна */
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch; /* Плавная прокрутка на iOS */
+    }
+    
+    .product-modal-container {
+        padding: 0;
+        min-height: 100vh;
+        overflow-y: auto;
+    }
+    
+    .product-modal-content {
+        width: 100%;
+        max-height: none;
+        margin: 0;
+        border-radius: 0;
+        min-height: 100vh;
+    }
+    
+    .product-modal-body {
+        flex-direction: column;
+        padding-top: 0; /* Убираем верхний отступ */
+        min-height: 100vh;
+        height: auto;
+        overflow: visible;
+    }
+    
+    /* Кнопка закрытия поверх полноэкранного фото */
+    .product-modal-header {
+        position: fixed;
+        top: 15px;
+        right: 15px;
+        z-index: 10002;
+    }
+    
+    .product-modal-close {
+        background: rgba(0, 0, 0, 0.7);
+        box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+    
+    .product-modal-images {
+        width: 100%;
+        height: auto;
+        position: relative;
+        overflow: hidden;
+        padding: 0;
+        margin: 0;
+        background: #fff;
+        display: block;
+        touch-action: pan-y pinch-zoom;
+        direction: ltr; /* Обычное направление для мобильной версии */
+    }
+    
+    .product-image-container {
+        width: 100%;
+        aspect-ratio: 4 / 5;
+        display: block;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .product-modal-info {
+        width: 100%;
+        padding: 20px;
+        position: relative;
+        top: 0;
+        height: auto;
+        max-height: none;
+        overflow: visible;
+    }
+    
+    .product-image-container img {
+        object-fit: cover;
+        object-position: top center;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        display: block;
+        position: relative;
+        top: 0;
+        left: 0;
+        transform: none;
+    }
+    
+    .product-modal-title {
+        font-size: 27px; /* Увеличено с 24px на 27px */
+    }
+    .product-modal-price {
+        font-size: 23px; /* Увеличено с 20px на 23px */
+    }
+    
+    .image-nav-btn {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 0; /* Квадратные кнопки в мобильной версии */
+    }
+    
+    .image-navigation {
+        padding: 0 10px;
+        z-index: 5;
+    }
+    
+    .image-indicators {
+        bottom: 10px;
+        z-index: 5;
+    }
+}
+
+@media (min-width: 769px) {
+    .product-modal-overlay {
+        overflow: hidden;
+    }
+    
+    .product-modal-body {
+        flex-direction: row;
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        overflow: hidden;
+    }
+    
+    .product-modal-images {
+        width: 60%;
+        height: 100vh;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 80px 20px 100px 30px; /* Увеличен левый padding для компенсации полосы прокрутки */
+        background: #f5f5f5;
+        direction: rtl; /* Перемещаем полосу прокрутки влево */
+    }
+    
+    /* Возвращаем нормальное направление для контента внутри */
+    .product-modal-images .product-image-container {
+        direction: ltr;
+    }
+    
+    /* Custom scrollbar for images panel */
+    .product-modal-images::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    .product-modal-images::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+    
+    .product-modal-images::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 4px;
+    }
+    
+    .product-modal-images::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+    
+    .product-modal-info {
+        width: 40%;
+        position: absolute;
+        right: 0;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 80px 30px 30px 30px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        background: white;
+        box-shadow: -2px 0 10px rgba(0,0,0,0.05);
+    }
+    
+    /* Show all description sections by default on desktop */
+    .product-modal-info .description-content {
+        display: block !important;
+    }
+    
+    /* Thin scrollbar for info panel if needed */
+    .product-modal-info::-webkit-scrollbar {
+        width: 4px;
+    }
+    
+    .product-modal-info::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    
+    .product-modal-info::-webkit-scrollbar-thumb {
+        background: #ddd;
+        border-radius: 2px;
+    }
+    
+    /* Hide toggle buttons on desktop */
+    .product-modal-info .description-toggle span:last-child {
+        display: none;
+    }
+    
+    .product-modal-info .description-toggle {
+        cursor: default;
+        padding: 6px 0;
+        font-size: 14px; /* Увеличено с 11px на 14px */
+    }
+    
+    .product-modal-info .description-toggle:hover {
+        background: transparent;
+    }
+    
+    /* Compact styles for desktop info panel */
+    .product-modal-info .product-modal-title {
+        font-size: 21px; /* Увеличено с 18px на 21px */
+        margin-bottom: 6px;
+    }
+    
+    
+    .product-modal-info .product-modal-price {
+        font-size: 17px; /* Увеличено с 14px на 17px */
+        margin: 8px 0;
+    }
+    
+    .product-modal-info .add-to-wishlist-btn {
+        padding: 8px;
+        font-size: 14px; /* Увеличено с 11px на 14px */
+        margin-bottom: 8px;
+    }
+    
+    .product-modal-info .product-modal-sizes h4 {
+        font-size: 14px; /* Увеличено с 11px на 14px */
+        margin-bottom: 6px;
+    }
+    
+    .product-modal-info .size-options {
+        margin-bottom: 10px;
+    }
+    
+    .product-modal-info .size-option {
+        padding: 6px 10px;
+        font-size: 14px; /* Увеличено с 11px на 14px */
+    }
+    
+    .product-modal-info .product-description-section {
+        margin-top: 8px;
+    }
+    
+    .product-modal-info .description-content {
+        padding: 5px 0;
+        font-size: 13px; /* Увеличено с 10px на 13px */
+        line-height: 1.3;
+    }
+    
+    .product-modal-info .product-breadcrumb {
+        font-size: 13px; /* Увеличено с 10px на 13px */
+        margin-bottom: 8px;
+    }
+    
+    
+    .product-modal-info .product-tag {
+        font-size: 12px; /* Увеличено с 9px на 12px */
+        padding: 3px 6px;
+        margin-top: 8px;
+    }
+}

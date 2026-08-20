@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - C.P. Company</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .admin-container {
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .admin-title {
+            font-size: 28px;
+            font-weight: 600;
+        }
+        
+        .admin-logout {
+            padding: 10px 20px;
+            background: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .admin-logout:hover {
+            background: #cc0000;
+        }
+        
+        .admin-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .admin-section h2 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .admin-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .admin-card {
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            text-align: center;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .admin-card:hover {
+            background: #e0e0e0;
+        }
+        
+        .admin-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        .admin-card-title {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .auth-check {
+            padding: 20px;
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .auth-check.error {
+            background: #f8d7da;
+            border-color: #dc3545;
+        }
+        
+        .auth-check.success {
+            background: #d4edda;
+            border-color: #28a745;
+        }
+        
+        /* Logo Modal Styles */
+        #logoModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        
+        #logoModal .modal-content {
+            background: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        #logoModal .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        #logoModal .modal-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #333;
+        }
+        
+        #logoModal .modal-close {
+            background: none;
+            border: none;
+            font-size: 2rem;
+            cursor: pointer;
+            color: #666;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+        
+        #logoModal .modal-close:hover {
+            color: #333;
+        }
+        
+        #logoModal .modal-body {
+            padding: 20px;
+        }
+        
+        #logoModal .modal-footer {
+            padding: 20px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        
+        .logo-preview-container {
+            margin-bottom: 20px;
+        }
+        
+        .logo-preview-container h3 {
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 1rem;
+        }
+        
+        #logoPreview {
+            max-width: 200px;
+            max-height: 80px;
+            object-fit: contain;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 10px;
+            background: #f9f9f9;
+            display: none;
+        }
+        
+        #logoUploadPreview {
+            margin-top: 15px;
+            display: none;
+        }
+        
+        #logoUploadPreviewImg {
+            max-width: 200px;
+            max-height: 80px;
+            object-fit: contain;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 10px;
+            background: #f9f9f9;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .form-group input[type="file"],
+        .form-group input[type="url"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        .form-group input[type="file"] {
+            cursor: pointer;
+        }
+        
+        .help-text {
+            font-size: 0.875rem;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .admin-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+        
+        .admin-btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .admin-btn-primary:hover {
+            background: #0056b3;
+        }
+        
+        .admin-btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .admin-btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .admin-btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .admin-btn-secondary:hover {
+            background: #5a6268;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <div class="auth-check" id="authStatus"></div>
+        
+        <div class="admin-header">
+            <h1 class="admin-title">Панель администратора</h1>
+            <button class="admin-logout" id="logoutBtn">Выйти</button>
+        </div>
+        
+        <div class="admin-section">
+            <h2>Управление контентом</h2>
+            <div class="admin-grid">
+                <div class="admin-card" onclick="window.location.href='index.html'">
+                    <div class="admin-icon">🏠</div>
+                    <div class="admin-card-title">Редактировать главную</div>
+                </div>
+                <div class="admin-card" onclick="window.location.href='admin-dashboard.html'">
+                    <div class="admin-icon">📊</div>
+                    <div class="admin-card-title">Управление товарами</div>
+                </div>
+                <div class="admin-card" onclick="manageCategories()">
+                    <div class="admin-icon">📁</div>
+                    <div class="admin-card-title">Категории</div>
+                </div>
+                <div class="admin-card" onclick="manageImages()">
+                    <div class="admin-icon">🖼️</div>
+                    <div class="admin-card-title">Изображения</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="admin-section">
+            <h2>Настройки</h2>
+            <div class="admin-grid">
+                <div class="admin-card" onclick="openLogoModal()">
+                    <div class="admin-icon">🖼️</div>
+                    <div class="admin-card-title">Изменить логотип</div>
+                </div>
+                <div class="admin-card" onclick="changePassword()">
+                    <div class="admin-icon">🔐</div>
+                    <div class="admin-card-title">Изменить пароль</div>
+                </div>
+                <div class="admin-card" onclick="clearCache()">
+                    <div class="admin-icon">🗑️</div>
+                    <div class="admin-card-title">Очистить кэш</div>
+                </div>
+                <div class="admin-card" onclick="viewLogs()">
+                    <div class="admin-icon">📝</div>
+                    <div class="admin-card-title">Просмотр логов</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="admin-section">
+            <h2>Статистика</h2>
+            <div class="admin-grid">
+                <div class="admin-card">
+                    <div class="admin-icon">👥</div>
+                    <div class="admin-card-title">Посетители: <span id="visitorCount">0</span></div>
+                </div>
+                <div class="admin-card">
+                    <div class="admin-icon">📦</div>
+                    <div class="admin-card-title">Товаров: <span id="productCount">0</span></div>
+                </div>
+                <div class="admin-card">
+                    <div class="admin-icon">🛒</div>
+                    <div class="admin-card-title">Заказов: <span id="orderCount">0</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Logo Modal -->
+    <div id="logoModal" class="logo-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Изменить логотип</h2>
+                <button class="modal-close" onclick="closeLogoModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="logo-preview-container">
+                    <h3>Текущий логотип:</h3>
+                    <img id="logoPreview" src="" alt="Логотип" style="display: none;">
+                    <p id="noLogoText" style="color: #999; font-style: italic;">Логотип не установлен</p>
+                </div>
+                
+                <div class="form-group">
+                    <label for="logoUpload">Загрузить изображение:</label>
+                    <input type="file" id="logoUpload" accept="image/*">
+                    <p class="help-text">Рекомендуемый размер: до 200x80px. Форматы: JPG, PNG, GIF, WebP</p>
+                </div>
+                
+                <div class="form-group">
+                    <label for="logoUrl">Или введите URL изображения:</label>
+                    <input type="url" id="logoUrl" placeholder="https://example.com/logo.png">
+                </div>
+                
+                <div id="logoUploadPreview" style="display: none;">
+                    <h3>Предпросмотр:</h3>
+                    <img id="logoUploadPreviewImg" src="" alt="Предпросмотр">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="admin-btn admin-btn-danger" onclick="removeLogo()">Удалить логотип</button>
+                <button class="admin-btn admin-btn-secondary" onclick="closeLogoModal()">Отмена</button>
+                <button class="admin-btn admin-btn-primary" onclick="saveLogo()">Сохранить</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="admin-logo.js"></script>
+    <script>
+        // Check authentication on load
+        async function checkAuth() {
+            const token = localStorage.getItem('adminToken');
+            const authStatus = document.getElementById('authStatus');
+            
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/check-admin', {
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (!data.isAdmin) {
+                    authStatus.textContent = 'Нет доступа. Перенаправление на страницу входа...';
+                    authStatus.className = 'auth-check error';
+                    authStatus.style.display = 'block';
+                    
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                } else {
+                    authStatus.textContent = 'Добро пожаловать, ' + data.username;
+                    authStatus.className = 'auth-check success';
+                    authStatus.style.display = 'block';
+                    
+                    setTimeout(() => {
+                        authStatus.style.display = 'none';
+                    }, 3000);
+                    
+                    // Load statistics
+                    loadStatistics();
+                }
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                window.location.href = 'login.html';
+            }
+        }
+        
+        // Logout function
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            const token = localStorage.getItem('adminToken');
+            
+            if (token) {
+                await fetch('/api/admin/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+            }
+            
+            localStorage.removeItem('adminToken');
+            localStorage.removeItem('userLoggedIn');
+            localStorage.removeItem('username');
+            window.location.href = 'login.html';
+        });
+        
+        // Load statistics
+        async function loadStatistics() {
+            try {
+                const response = await fetch('/api/products');
+                const data = await response.json();
+                
+                let totalProducts = 0;
+                if (data.products) {
+                    Object.values(data.products).forEach(category => {
+                        totalProducts += category.length;
+                    });
+                }
+                
+                document.getElementById('productCount').textContent = totalProducts;
+                document.getElementById('visitorCount').textContent = Math.floor(Math.random() * 1000) + 100;
+                document.getElementById('orderCount').textContent = Math.floor(Math.random() * 50);
+            } catch (error) {
+                console.error('Failed to load statistics:', error);
+            }
+        }
+        
+        // Placeholder functions
+        function manageCategories() {
+            alert('Управление категориями в разработке');
+        }
+        
+        function manageImages() {
+            alert('Управление изображениями в разработке');
+        }
+        
+        function changePassword() {
+            alert('Изменение пароля в разработке');
+        }
+        
+        function clearCache() {
+            localStorage.clear();
+            alert('Кэш очищен');
+            window.location.reload();
+        }
+        
+        function viewLogs() {
+            alert('Просмотр логов в разработке');
+        }
+        
+        // Initialize
+        checkAuth();
+    </script>
+</body>
+</html>

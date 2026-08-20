@@ -1,0 +1,92 @@
+/* Force Arrow Styles - Ensure arrows always have correct visual states */
+
+/* Base arrow styles with high specificity - ONLY opacity transition, no positioning changes */
+.trending-slider .slider-arrow.prev-arrow,
+.trending-slider .slider-arrow.next-arrow {
+    transition: opacity 0.2s ease !important;
+}
+
+/* Force enabled state for prev arrow when not at first position */
+.trending-slider .slider-arrow.prev-arrow:not([disabled]):not([aria-disabled="true"]) {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    cursor: pointer !important;
+}
+
+/* Force enabled state for next arrow when not at last position */
+.trending-slider .slider-arrow.next-arrow:not([disabled]):not([aria-disabled="true"]) {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    cursor: pointer !important;
+}
+
+/* Force disabled state only when actually disabled */
+.trending-slider .slider-arrow.prev-arrow[disabled],
+.trending-slider .slider-arrow.prev-arrow[aria-disabled="true"],
+.trending-slider .slider-arrow.next-arrow[disabled],
+.trending-slider .slider-arrow.next-arrow[aria-disabled="true"] {
+    opacity: 0.3 !important;
+    pointer-events: none !important;
+    cursor: default !important;
+}
+
+/* Hover states for enabled arrows - only opacity change */
+.trending-slider .slider-arrow:not([disabled]):not([aria-disabled="true"]):hover {
+    opacity: 0.8 !important;
+}
+
+/* Ensure arrows are always visible when they should be */
+.trending-slider .slider-arrow {
+    visibility: visible !important;
+}
+
+/* Override any conflicting styles with maximum specificity */
+html body .trending-slider .slider-arrow.prev-arrow:not([disabled]) {
+    pointer-events: auto !important;
+}
+
+html body .trending-slider .slider-arrow.next-arrow:not([disabled]) {
+    pointer-events: auto !important;
+}
+
+/* Fix for specific index positions */
+/* When NOT at index 0, prev should always be enabled */
+.trending-grid[data-current-index]:not([data-current-index="0"]) ~ .prev-arrow,
+.trending-slider:has(.trending-grid[data-current-index]:not([data-current-index="0"])) .prev-arrow {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    cursor: pointer !important;
+}
+
+/* Special case: at last position, prev arrow MUST be enabled */
+.trending-grid[data-current-index="6"] ~ .prev-arrow,
+.trending-grid[data-current-index="7"] ~ .prev-arrow,
+.trending-grid[data-current-index="8"] ~ .prev-arrow,
+.trending-grid[data-current-index="9"] ~ .prev-arrow,
+.trending-slider:has(.trending-grid[data-current-index="6"]) .prev-arrow,
+.trending-slider:has(.trending-grid[data-current-index="7"]) .prev-arrow,
+.trending-slider:has(.trending-grid[data-current-index="8"]) .prev-arrow,
+.trending-slider:has(.trending-grid[data-current-index="9"]) .prev-arrow {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    cursor: pointer !important;
+}
+
+/* Ensure arrow icons are visible */
+.trending-slider .slider-arrow svg {
+    pointer-events: none !important;
+    opacity: 1 !important;
+}
+
+/* Debug styles - uncomment to see arrow boundaries */
+/*
+.trending-slider .slider-arrow {
+    border: 2px solid red !important;
+    background: rgba(255, 0, 0, 0.1) !important;
+}
+
+.trending-slider .slider-arrow[disabled] {
+    border: 2px solid gray !important;
+    background: rgba(128, 128, 128, 0.1) !important;
+}
+*/

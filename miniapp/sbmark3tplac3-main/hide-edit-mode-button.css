@@ -1,0 +1,29 @@
+/* Hide Edit Mode Button - Принудительно скрывает кнопку Edit Mode */
+
+.admin-mode-toggle {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    position: absolute !important;
+    left: -9999px !important;
+}
+
+/* Убеждаемся что hero-content всегда видим */
+.hero-content {
+    z-index: 100 !important;
+    position: relative !important;
+}
+
+.hero-title,
+.hero-subtitle {
+    z-index: 101 !important;
+    position: relative !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Кнопки редактирования изображений не должны перекрывать текст */
+.admin-image-edit-btn {
+    z-index: 5 !important;
+}

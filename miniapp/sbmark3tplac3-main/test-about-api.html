@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test About API</title>
+</head>
+<body>
+    <h1>Test About API</h1>
+    
+    <div style="margin: 20px 0;">
+        <h2>Login First:</h2>
+        <input type="text" id="username" placeholder="Username" value="admin">
+        <input type="password" id="password" placeholder="Password" value="admin123">
+        <button onclick="login()">Login</button>
+        <div id="loginStatus"></div>
+    </div>
+    
+    <div style="margin: 20px 0;">
+        <h2>Test GET About Content:</h2>
+        <button onclick="testGet()">Get About Content</button>
+        <pre id="getResult"></pre>
+    </div>
+    
+    <div style="margin: 20px 0;">
+        <h2>Test POST About Content:</h2>
+        <input type="text" id="testTitle" placeholder="Title" value="TEST TITLE">
+        <textarea id="testText" placeholder="Text">Test text content</textarea>
+        <button onclick="testPost()">Save About Content</button>
+        <pre id="postResult"></pre>
+    </div>
+    
+    <script>
+        let adminToken = localStorage.getItem('adminToken');
+        
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    adminToken = data.token;
+                    localStorage.setItem('adminToken', adminToken);
+                    document.getElementById('loginStatus').textContent = 'Login successful! Token: ' + adminToken;
+                } else {
+                    document.getElementById('loginStatus').textContent = 'Login failed: ' + response.status;
+                }
+            } catch (error) {
+                document.getElementById('loginStatus').textContent = 'Login error: ' + error.message;
+            }
+        }
+        
+        async function testGet() {
+            try {
+                const response = await fetch('/api/about-content');
+                const data = await response.json();
+                document.getElementById('getResult').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('getResult').textContent = 'Error: ' + error.message;
+            }
+        }
+        
+        async function testPost() {
+            const title = document.getElementById('testTitle').value;
+            const text = document.getElementById('testText').value;
+            
+            if (!adminToken) {
+                document.getElementById('postResult').textContent = 'Please login first!';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/about-content', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminToken}`
+                    },
+                    body: JSON.stringify({ title, text })
+                });
+                
+                const result = await response.text();
+                document.getElementById('postResult').textContent = 
+                    `Status: ${response.status}\n` +
+                    `Response: ${result}`;
+                    
+                if (!response.ok) {
+                    console.error('Server error:', response.status, result);
+                }
+            } catch (error) {
+                document.getElementById('postResult').textContent = 'Error: ' + error.message;
+            }
+        }
+        
+        // Check if already logged in
+        if (adminToken) {
+            document.getElementById('loginStatus').textContent = 'Using existing token: ' + adminToken;
+        }
+    </script>
+</body>
+</html>

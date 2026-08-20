@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Instant Arrow Fix</title>
+</head>
+<body>
+    <h1>Instant Arrow Fix</h1>
+    <p>Copy this code and paste it in the browser console:</p>
+    
+    <pre style="background: #f0f0f0; padding: 20px; border-radius: 5px;">
+// INSTANT FIX - Disable next arrow at position 6
+(function() {
+    const nextArrow = document.querySelector('.next-arrow');
+    const grid = document.querySelector('.trending-grid');
+    
+    if (!nextArrow || !grid) {
+        console.error('Elements not found');
+        return;
+    }
+    
+    const currentIndex = parseInt(grid.dataset.currentIndex) || 0;
+    const items = document.querySelectorAll('.trending-item');
+    const maxIndex = Math.max(0, items.length - 4); // 4 items per view on desktop
+    
+    console.log('Current:', currentIndex, 'Max:', maxIndex, 'Items:', items.length);
+    
+    if (currentIndex >= maxIndex) {
+        // Completely disable the next arrow
+        nextArrow.style.cssText = 'opacity: 0.3 !important; pointer-events: none !important; cursor: not-allowed !important;';
+        nextArrow.setAttribute('disabled', 'true');
+        nextArrow.onclick = null;
+        
+        // Remove all event listeners by cloning
+        const newNext = nextArrow.cloneNode(true);
+        newNext.style.cssText = 'opacity: 0.3 !important; pointer-events: none !important; cursor: not-allowed !important;';
+        newNext.onclick = function(e) { 
+            e.preventDefault(); 
+            e.stopPropagation(); 
+            console.log('Next arrow disabled - at last position');
+            return false; 
+        };
+        
+        nextArrow.parentNode.replaceChild(newNext, nextArrow);
+        
+        console.log('✅ Next arrow DISABLED at position', currentIndex);
+    }
+    
+    return 'Fixed!';
+})();
+    </pre>
+    
+    <button onclick="copyCode()">Copy Code</button>
+    
+    <script>
+        function copyCode() {
+            const code = document.querySelector('pre').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                alert('Code copied! Now paste it in the browser console.');
+            });
+        }
+    </script>
+</body>
+</html>

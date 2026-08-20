@@ -1,0 +1,247 @@
+/* Brand Badge Styles */
+.brand-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    background: #1a1a1a;
+    color: white;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-radius: 2px;
+    margin-right: 8px;
+}
+
+/* Product Card Brand Label */
+.product-brand {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+/* Brand Dropdown Styles */
+.brand-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    min-width: 200px;
+    z-index: 1000;
+    margin-top: 10px;
+    padding: 8px 0;
+    animation: dropdownOpen 0.2s ease;
+}
+
+@keyframes dropdownOpen {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+.brand-dropdown-item {
+    display: block;
+    padding: 10px 16px;
+    color: #333;
+    text-decoration: none;
+    font-size: 14px;
+    transition: background 0.2s;
+    cursor: pointer;
+}
+
+.brand-dropdown-item:hover {
+    background: #f5f5f5;
+}
+
+/* Brand Page Title */
+.brand-page-title {
+    font-size: 36px;
+    font-weight: 300;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+}
+
+/* Admin Dashboard Brand Styles */
+.brand-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    background: #fff;
+    transition: all 0.3s ease;
+    margin-bottom: 12px;
+}
+
+.brand-item:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.brand-item.inactive {
+    opacity: 0.6;
+    background: #f5f5f5;
+}
+
+.brand-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.brand-name {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.brand-status {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.brand-item.inactive .brand-status {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.brand-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.brand-actions button {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.brand-actions button:hover {
+    background: #f5f5f5;
+}
+
+/* Shop Grid Styles for Brand Page */
+.shop-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    margin-top: 30px;
+    border: 1px solid #e0e0e0;
+    background: #e0e0e0;
+}
+
+@media (max-width: 1024px) {
+    .shop-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .shop-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .shop-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Product Card Styles for Brand Page */
+.shop-grid .product-card {
+    position: relative;
+    background: white;
+    transition: all 0.3s ease;
+}
+
+.shop-grid .product-card:hover {
+    transform: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    z-index: 1;
+}
+
+.shop-grid .product-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+}
+
+.shop-grid .product-image {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3/4;
+    min-height: 0;
+    overflow: hidden;
+    background: #f8f8f8;
+}
+
+.shop-grid .product-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.shop-grid .product-card:hover .product-image img {
+    transform: scale(1.05);
+}
+
+.shop-grid .trending-badge {
+    display: none !important;
+}
+
+/* Product Info for Brand Page */
+.shop-grid .product-info {
+    display: block !important;
+    padding: 12px;
+    background: white;
+}
+
+.shop-grid .product-brand {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.shop-grid .product-name {
+    display: block;
+    font-size: 13px;
+    font-weight: 400;
+    color: #333;
+    margin: 0 0 6px 0;
+    line-height: 1.3;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.shop-grid .product-price {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: #000;
+    margin: 0;
+}

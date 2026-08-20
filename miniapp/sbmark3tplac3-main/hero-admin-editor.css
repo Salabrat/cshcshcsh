@@ -1,0 +1,377 @@
+/* Hero Edit Button */
+.hero-edit-button {
+    position: absolute;
+    bottom: 30px;
+    left: 30px;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #ff6b00 0%, #ff8533 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(255, 107, 0, 0.3);
+    transition: all 0.3s ease;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    animation: slideInLeft 0.5s ease;
+}
+
+.hero-edit-button:hover {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 6px 30px rgba(255, 107, 0, 0.4);
+    background: linear-gradient(135deg, #ff8533 0%, #ff6b00 100%);
+}
+
+.hero-edit-button svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Modal Styles */
+.hero-edit-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease;
+}
+
+.hero-edit-modal-content {
+    background: white;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 1200px;
+    max-height: 90vh;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.4s ease;
+}
+
+.hero-edit-modal-header {
+    padding: 20px 30px;
+    background: linear-gradient(135deg, #ff6b00 0%, #ff8533 100%);
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.hero-edit-modal-header h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.hero-edit-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 36px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.hero-edit-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: rotate(90deg);
+}
+
+.hero-edit-modal-body {
+    padding: 30px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    max-height: calc(90vh - 80px);
+    overflow-y: auto;
+}
+
+/* Preview Section */
+.hero-edit-preview {
+    background: #f8f8f8;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.hero-edit-preview-image {
+    width: 100%;
+    height: 400px;
+    background-size: cover;
+    background-position: center;
+    background-image: url('https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1920&h=1080&fit=crop');
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hero-edit-preview-image::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.hero-edit-preview-content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    color: white;
+    padding: 20px;
+}
+
+.hero-edit-preview-content h3 {
+    font-size: 36px;
+    font-weight: 900;
+    line-height: 1.1;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: -1px;
+}
+
+.hero-edit-preview-content p {
+    font-size: 16px;
+    font-weight: 300;
+    margin-bottom: 20px;
+    opacity: 0.9;
+}
+
+.hero-edit-preview-content button {
+    padding: 12px 30px;
+    background: white;
+    color: #333;
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Form Section */
+.hero-edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.hero-edit-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.hero-edit-group label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+.hero-edit-group input[type="text"],
+.hero-edit-group textarea,
+.hero-edit-group select {
+    padding: 12px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    font-family: inherit;
+    width: 100%;
+    box-sizing: border-box;
+    background: white;
+}
+
+.hero-edit-group input[type="text"]:focus,
+.hero-edit-group textarea:focus,
+.hero-edit-group select:focus {
+    outline: none;
+    border-color: #ff6b00;
+    box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.1);
+}
+
+.hero-edit-group select {
+    cursor: pointer;
+    appearance: auto;
+}
+
+.hero-edit-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.hero-edit-group small {
+    font-size: 12px;
+    color: #666;
+}
+
+/* File Input */
+.hero-edit-file-wrapper {
+    position: relative;
+}
+
+.hero-edit-file-wrapper input[type="file"] {
+    position: absolute;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+}
+
+.hero-edit-file-button {
+    width: 100%;
+    padding: 12px 16px;
+    background: #f8f8f8;
+    border: 2px dashed #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.hero-edit-file-button:hover {
+    background: #fff;
+    border-color: #ff6b00;
+    color: #ff6b00;
+}
+
+/* Actions */
+.hero-edit-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.hero-edit-save,
+.hero-edit-cancel {
+    padding: 14px 28px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.hero-edit-save {
+    background: linear-gradient(135deg, #ff6b00 0%, #ff8533 100%);
+    color: white;
+    flex: 1;
+}
+
+.hero-edit-save:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(255, 107, 0, 0.3);
+}
+
+.hero-edit-cancel {
+    background: #f0f0f0;
+    color: #666;
+}
+
+.hero-edit-cancel:hover {
+    background: #e0e0e0;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideInLeft {
+    from {
+        transform: translateX(-30px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Responsive */
+@media (max-width: 968px) {
+    .hero-edit-modal-body {
+        grid-template-columns: 1fr;
+    }
+    
+    .hero-edit-preview {
+        order: 2;
+    }
+    
+    .hero-edit-form {
+        order: 1;
+    }
+}
+
+@media (max-width: 640px) {
+    .hero-edit-button {
+        bottom: 20px;
+        left: 20px;
+        padding: 10px 16px;
+        font-size: 13px;
+    }
+    
+    .hero-edit-button span {
+        display: none;
+    }
+    
+    .hero-edit-modal-content {
+        width: 95%;
+        border-radius: 12px;
+    }
+    
+    .hero-edit-modal-body {
+        padding: 20px;
+    }
+    
+    .hero-edit-preview-image {
+        height: 250px;
+    }
+    
+    .hero-edit-preview-content h3 {
+        font-size: 24px;
+    }
+    
+    .hero-edit-actions {
+        flex-direction: column;
+    }
+}

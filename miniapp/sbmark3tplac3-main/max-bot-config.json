@@ -1,0 +1,5 @@
+{
+  "botToken": "f9LHodD0cOJoFZB4Aoe4oyAgMW6g4P4ToSKa3FAqRPgoWWLipVoVCVJwhJ4u3yAzbpxwRilAnwRIvv4NsX7H",
+  "maxUsername": "your_max_username",
+  "messageTemplate": "Здравствуйте! Заинтересовал данный товар: {productLink}"
+}

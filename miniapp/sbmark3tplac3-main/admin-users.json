@@ -1,0 +1,19 @@
+{
+  "admins": [
+    {
+      "id": "8222800886",
+      "type": "telegram",
+      "username": null,
+      "addedAt": "2026-01-24T15:34:08.559Z",
+      "addedBy": "admin"
+    },
+    {
+      "id": "7573226427",
+      "type": "telegram",
+      "username": null,
+      "addedAt": "2026-01-24T15:54:50.734Z",
+      "addedBy": "8222800886"
+    }
+  ],
+  "lastId": 1
+}

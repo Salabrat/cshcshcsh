@@ -1,0 +1,8 @@
+{
+  "enabled": true,
+  "photo": "",
+  "text": "Добро пожаловать! Спасибо за регистрацию.",
+  "buttonText": "Открыть магазин",
+  "buttonUrl": "https://salikstore.ru",
+  "buttonType": "url"
+}

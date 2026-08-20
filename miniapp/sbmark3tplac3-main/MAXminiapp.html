@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Store</title>
+    
+    <!-- MAX Web App SDK -->
+    <script src="max-webapp.js"></script>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="TGminiapp.css?v=2">
+    <link rel="stylesheet" href="fonts/akony.css?v=2">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            background: #ffffff;
+            color: #000000 !important;
+            font-family: 'SOUTHGHETTO', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+    </style>
+</head>
+<body class="tg-loading">
+    <!-- Page Loader - logo injects immediately from localStorage -->
+    <div class="tg-page-loader" id="tgPageLoader">
+        <div class="tg-page-loader-logo-wrap" id="tgPageLoaderLogoWrap"></div>
+        <div class="tg-page-loader-spinner"></div>
+        <script>
+        (function(){
+            try {
+                var s = localStorage.getItem('tg_miniapp_design_settings');
+                if (s) {
+                    var d = JSON.parse(s);
+                    var firstLogo = Array.isArray(d.logoImages) && d.logoImages.length > 0 ? d.logoImages[0] : null;
+                    var firstLogoUrl = firstLogo && typeof firstLogo === 'object' ? firstLogo.url : (typeof firstLogo === 'string' ? firstLogo : null);
+                    var src = d.loadingScreenImage || d.loaderLogoUrl || d.logoUrl || firstLogoUrl || null;
+                    if (src) {
+                        // iOS fix: convert data:video URLs to blob URLs (iOS has data URL size limits)
+                        if (src.indexOf('data:video/') === 0) {
+                            try {
+                                var parts = src.split(',');
+                                var mime = parts[0].match(/:(.*?);/)[1];
+                                var bstr = atob(parts[1]);
+                                var n = bstr.length;
+                                var u8 = new Uint8Array(n);
+                                for (var bi = 0; bi < n; bi++) u8[bi] = bstr.charCodeAt(bi);
+                                src = URL.createObjectURL(new Blob([u8], { type: mime }));
+                            } catch(be) {}
+                        }
+                        var wrap = document.getElementById('tgPageLoaderLogoWrap');
+                        if (wrap) {
+                            var isVideo = /\.(mp4|webm|ogg|mov)$/i.test(src) || src.indexOf('data:video/') === 0 || src.indexOf('blob:') === 0;
+                            if (isVideo) {
+                                var video = document.createElement('video');
+                                video.src = src;
+                                video.className = 'tg-page-loader-logo';
+                                if (typeof src === 'string' && src.indexOf('/uploads/') === 0 && !video.poster) {
+                                    video.poster = '/api/video-poster?src=' + encodeURIComponent(src);
+                                }
+                                video.muted = true;
+                                video.loop = true;
+                                video.playsInline = true;
+                                video.autoplay = true;
+                                video.setAttribute('playsinline', '');
+                                video.setAttribute('webkit-playsinline', '');
+                                video.setAttribute('muted', '');
+                                video.setAttribute('autoplay', '');
+                                video.setAttribute('preload', 'auto');
+                                video.onloadedmetadata = function() {
+                                    video.classList.add('tg-page-loader-logo-visible');
+                                };
+                                video.onloadeddata = function() {
+                                    video.classList.add('tg-page-loader-logo-visible');
+                                    video.play().catch(function(){});
+                                };
+                                video.onerror = function() {
+                                    video.classList.add('tg-page-loader-logo-visible');
+                                };
+                                wrap.appendChild(video);
+                                video.load();
+                                video.play().catch(function(){});
+                                if (window._iosVideoFix) window._iosVideoFix.applyToVideo(video);
+                            } else {
+                                var img = document.createElement('img');
+                                img.src = src;
+                                img.className = 'tg-page-loader-logo';
+                                img.alt = '';
+                                img.onload = img.onerror = function() {
+                                    img.classList.add('tg-page-loader-logo-visible');
+                                };
+                                wrap.appendChild(img);
+                            }
+                        }
+                    }
+                }
+            } catch(e) {}
+        })();
+        </script>
+    </div>
+
+    <!-- Logo Card -->
+    <div class="tg-logo-card">
+        <div class="tg-logo-content">
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="tg-main-content" id="mainContent">
+        <!-- Home page sections will be loaded dynamically -->
+    </main>
+
+    <!-- Catalog Page (Brands) -->
+    <div class="tg-catalog-page" id="catalogPage" style="display: none;">
+        <div class="tg-catalog-header">
+        </div>
+        <div class="tg-catalog-content">
+            <div class="tg-brands-grid" id="brandsGrid">
+                <!-- Brands will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="tg-bottom-nav">
+        <a href="#home" class="tg-nav-item active">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+        </a>
+        <a href="#catalog" class="tg-nav-item">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+        </a>
+        <a href="#cart" class="tg-nav-item">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="9" cy="21" r="1"></circle>
+                <circle cx="20" cy="21" r="1"></circle>
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+            </svg>
+        </a>
+        <a href="#favorites" class="tg-nav-item tg-favorites-nav-item">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+            </svg>
+            <span class="tg-favorites-badge"></span>
+        </a>
+        <a href="#profile" class="tg-nav-item">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+        </a>
+    </nav>
+
+    <!-- iOS Video Autoplay Fix -->
+    <script src="ios-video-fix.js"></script>
+
+    <!-- Scripts -->
+    <script src="max-webapp.js"></script>
+    <script src="telegram-image-fullscreen.js"></script>
+    <script src="telegram-cart.js"></script>
+    <script src="database.js"></script>
+    <script src="database-api.js"></script>
+    <script src="favorites.js"></script>
+    <script src="favorites-counter.js"></script>
+    <script src="telegram-cart-page.js"></script>
+    <script src="telegram-favorites-page.js"></script>
+    <script src="telegram-profile-page.js"></script>
+    <script src="telegram-privacy-page.js"></script>
+    <script src="telegram-checkout.js"></script>
+    <script src="telegram-product-modal.js"></script>
+    <script src="telegram-category-page.js"></script>
+    <script src="telegram-roulette-page.js"></script>
+    <script src="telegram-admin-page.js"></script>
+    <script src="telegram-page-loader.js"></script>
+    <script src="telegram-miniapp-loader.js"></script>
+    <script src="telegram-products-swipe.js"></script>
+    <script src="telegram-catalog.js"></script>
+    <script src="telegram-navigation.js"></script>
+    <script src="telegram-init-wrapper.js"></script>
+    <script src="load-hero-content.js"></script>
+</body>
+</html>

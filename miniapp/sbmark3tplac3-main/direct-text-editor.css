@@ -1,0 +1,245 @@
+/* Direct Text Editor Styles */
+
+/* Edit button styles */
+.direct-edit-button {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.8) !important;
+    color: white;
+    border: 2px solid white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 9999;
+    opacity: 0;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.direct-edit-button:hover {
+    background: #000 !important;
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.direct-edit-button svg {
+    width: 16px;
+    height: 16px;
+    pointer-events: none;
+}
+
+/* Show button on parent hover */
+*:has(.direct-edit-button):hover .direct-edit-button {
+    opacity: 1;
+}
+
+/* Editor modal styles */
+.direct-text-editor {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    z-index: 10000;
+    width: 90%;
+    max-width: 500px;
+    animation: slideUp 0.3s ease;
+}
+
+.direct-text-editor h3 {
+    margin: 0 0 16px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+}
+
+.direct-text-editor input,
+.direct-text-editor textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 15px;
+    font-family: inherit;
+    transition: border-color 0.3s ease;
+    box-sizing: border-box;
+}
+
+.direct-text-editor input:focus,
+.direct-text-editor textarea:focus {
+    outline: none;
+    border-color: #4CAF50;
+}
+
+.direct-text-editor textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.direct-text-editor .button-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.direct-text-editor button {
+    flex: 1;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.direct-text-editor .save-btn {
+    background: #4CAF50;
+    color: white;
+}
+
+.direct-text-editor .save-btn:hover {
+    background: #45a049;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.direct-text-editor .cancel-btn {
+    background: #f0f0f0;
+    color: #333;
+}
+
+.direct-text-editor .cancel-btn:hover {
+    background: #e0e0e0;
+}
+
+/* Overlay */
+.direct-edit-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    animation: fadeIn 0.3s ease;
+}
+
+/* Notifications */
+.direct-edit-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 14px 20px;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 10001;
+    animation: slideInRight 0.3s ease;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.direct-edit-notification.success {
+    background: #4CAF50;
+    color: white;
+}
+
+.direct-edit-notification.error {
+    background: #f44336;
+    color: white;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -40%);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+    .direct-text-editor {
+        background: #2a2a2a;
+        color: #fff;
+    }
+
+    .direct-text-editor h3 {
+        color: #fff;
+    }
+
+    .direct-text-editor input,
+    .direct-text-editor textarea {
+        background: #3a3a3a;
+        border-color: #4a4a4a;
+        color: #fff;
+    }
+
+    .direct-text-editor input:focus,
+    .direct-text-editor textarea:focus {
+        border-color: #4CAF50;
+    }
+
+    .direct-text-editor .cancel-btn {
+        background: #3a3a3a;
+        color: #fff;
+    }
+
+    .direct-text-editor .cancel-btn:hover {
+        background: #4a4a4a;
+    }
+}
+
+/* Ensure elements with edit buttons are positioned relatively */
+.hero-title,
+.hero-subtitle,
+.campaign-label,
+.campaign-title,
+.campaign-description,
+.about-title,
+.about-text {
+    position: relative !important;
+}

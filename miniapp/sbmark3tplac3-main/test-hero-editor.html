@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hero Editor Test</title>
+    <link rel="stylesheet" href="hero-admin-editor.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+        }
+        
+        /* Hero Section */
+        .hero {
+            height: 100vh;
+            background-image: url('https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1920&h=1080&fit=crop');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 1;
+        }
+        
+        .hero-content {
+            text-align: center;
+            color: white;
+            z-index: 2;
+            padding: 20px;
+            max-width: 800px;
+        }
+        
+        .hero-title {
+            font-size: 72px;
+            font-weight: 900;
+            line-height: 1.1;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: -2px;
+        }
+        
+        .hero-subtitle {
+            font-size: 20px;
+            font-weight: 300;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 16px 40px;
+            background: white;
+            color: #333;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            background: #f0f0f0;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .btn-white {
+            background: white;
+            color: #333;
+        }
+        
+        /* Info Section */
+        .info-section {
+            padding: 60px 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .info-box {
+            background: #f8f8f8;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+        
+        .info-box h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+        
+        .feature-list {
+            list-style: none;
+        }
+        
+        .feature-list li {
+            padding: 12px 0;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .icon {
+            font-size: 24px;
+        }
+        
+        .admin-status {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 12px 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 999;
+            font-weight: 500;
+        }
+        
+        .admin-status.active {
+            background: linear-gradient(135deg, #ff6b00 0%, #ff8533 100%);
+            color: white;
+        }
+        
+        .login-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: white;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 999;
+        }
+        
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+        
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 48px;
+            }
+            
+            .hero-subtitle {
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-status" id="adminStatus">
+        Checking status...
+    </div>
+    
+    <button class="login-btn" onclick="loginAdmin()">
+        Login as Admin
+    </button>
+    
+    <!-- Hero Section -->
+    <section class="hero">
+        <img src="/uploads/hero-default.jpg" alt="High Performance Jackets" class="hero-background" style="display: none;">
+        <div class="hero-content">
+            <h1 class="hero-title">HIGH<br>PERFORMANCE<br>JACKETS</h1>
+            <p class="hero-subtitle">Cutting-edge technologies for all winter conditions</p>
+            <a href="#" class="btn btn-white" data-text-id="hero-btn">SHOP NOW</a>
+        </div>
+    </section>
+    
+    <!-- Info Section -->
+    <div class="info-section">
+        <div class="info-box">
+            <h2>🚀 Hero Editor Features</h2>
+            <ul class="feature-list">
+                <li>
+                    <span class="icon">📝</span>
+                    <div>
+                        <strong>Кнопка в левом нижнем углу:</strong> После входа как админ появится оранжевая кнопка "📝 Изменить Hero"
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">✏️</span>
+                    <div>
+                        <strong>Редактирование заголовка:</strong> Можно изменить главный заголовок с поддержкой переносов строк
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">📄</span>
+                    <div>
+                        <strong>Редактирование подзаголовка:</strong> Изменение описательного текста под заголовком
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🔘</span>
+                    <div>
+                        <strong>Текст кнопки:</strong> Изменение текста CTA кнопки
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">🖼️</span>
+                    <div>
+                        <strong>Фоновое изображение:</strong> Загрузка нового фонового изображения для Hero секции
+                    </div>
+                </li>
+                <li>
+                    <span class="icon">💾</span>
+                    <div>
+                        <strong>Сохранение на сервер:</strong> Все изменения сохраняются и видны всем пользователям
+                    </div>
+                </li>
+            </ul>
+        </div>
+        
+        <div class="info-box">
+            <h2>📋 Инструкция</h2>
+            <ol style="padding-left: 20px; line-height: 1.8;">
+                <li>Нажмите кнопку "Login as Admin" в правом верхнем углу</li>
+                <li>Введите учетные данные (admin / admin123)</li>
+                <li>После входа в левом нижнем углу hero секции появится кнопка "📝 Изменить Hero"</li>
+                <li>Нажмите на нее для открытия модального окна редактирования</li>
+                <li>Измените нужные поля и загрузите новое изображение при необходимости</li>
+                <li>Нажмите "💾 Сохранить изменения"</li>
+                <li>Обновите страницу, чтобы убедиться, что изменения сохранены</li>
+            </ol>
+        </div>
+    </div>
+    
+    <!-- Load scripts -->
+    <script src="load-button-texts.js"></script>
+    <script src="load-campaign-content.js"></script> <!-- Load campaign content for all users -->
+    <script src="load-hero-content.js"></script> <!-- Load after button-texts to override hero-btn -->
+    <script src="security-check.js"></script>
+    <script src="admin-loader.js"></script>
+    <script src="hero-admin-editor.js"></script>
+    
+    <script>
+        // Check admin status
+        async function checkAdminStatus() {
+            const statusDiv = document.getElementById('adminStatus');
+            const token = localStorage.getItem('adminToken');
+            
+            if (!token) {
+                statusDiv.className = 'admin-status';
+                statusDiv.textContent = '🔒 Not logged in';
+                return false;
+            }
+            
+            try {
+                const response = await fetch('/api/check-admin', {
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.isAdmin) {
+                        statusDiv.className = 'admin-status active';
+                        statusDiv.textContent = '✅ Admin Mode';
+                        return true;
+                    }
+                }
+            } catch (error) {
+                console.error('Admin check error:', error);
+            }
+            
+            statusDiv.className = 'admin-status';
+            statusDiv.textContent = '🔒 Not logged in';
+            return false;
+        }
+        
+        // Login as admin
+        async function loginAdmin() {
+            const username = prompt('Username:', 'admin');
+            const password = prompt('Password:', 'admin123');
+            
+            if (!username || !password) return;
+            
+            try {
+                const response = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('adminToken', data.token);
+                    localStorage.setItem('adminLoggedIn', 'true');
+                    window.isAdminUser = true;
+                    
+                    alert('✅ Login successful! Page will reload...');
+                    setTimeout(() => location.reload(), 500);
+                } else {
+                    alert('❌ Login failed');
+                }
+            } catch (error) {
+                alert('❌ Error: ' + error.message);
+            }
+        }
+        
+        // Check status on load
+        window.addEventListener('load', () => {
+            checkAdminStatus();
+        });
+    </script>
+</body>
+</html>

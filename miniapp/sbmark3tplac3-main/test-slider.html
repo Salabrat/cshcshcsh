@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Slider Arrows</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover {
+            background: #555;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .output {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 4px;
+            margin: 5px;
+        }
+        .status.ok {
+            background: #4CAF50;
+            color: white;
+        }
+        .status.error {
+            background: #f44336;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>Slider Arrow Test Page</h1>
+    
+    <div class="test-container">
+        <h2>Manual Controls</h2>
+        <button onclick="testPrevArrow()">Test Prev Arrow</button>
+        <button onclick="testNextArrow()">Test Next Arrow</button>
+        <button onclick="moveToLast()">Go to Last Item</button>
+        <button onclick="moveToFirst()">Go to First Item</button>
+        <button onclick="checkState()">Check Current State</button>
+        <div id="manual-output" class="output"></div>
+    </div>
+    
+    <div class="test-container">
+        <h2>Fix Controls</h2>
+        <button onclick="forceEnablePrev()">Force Enable Prev Arrow</button>
+        <button onclick="forceEnableNext()">Force Enable Next Arrow</button>
+        <button onclick="applyUltimateFix()">Apply Ultimate Fix</button>
+        <div id="fix-output" class="output"></div>
+    </div>
+    
+    <div class="test-container">
+        <h2>Diagnostics</h2>
+        <button onclick="runDiagnostics()">Run Full Diagnostics</button>
+        <div id="diagnostic-output" class="output"></div>
+    </div>
+    
+    <script>
+        function log(message, containerId = 'manual-output') {
+            const output = document.getElementById(containerId);
+            const timestamp = new Date().toLocaleTimeString();
+            output.innerHTML = `[${timestamp}] ${message}\n` + output.innerHTML;
+        }
+        
+        function testPrevArrow() {
+            const prevArrow = window.parent.document.querySelector('.prev-arrow');
+            if (!prevArrow) {
+                log('❌ Prev arrow not found!');
+                return;
+            }
+            
+            log(`Prev arrow state: disabled=${prevArrow.disabled}, pointer-events=${prevArrow.style.pointerEvents}`);
+            
+            // Try to click it
+            try {
+                prevArrow.click();
+                log('✅ Clicked prev arrow');
+            } catch (e) {
+                log(`❌ Error clicking prev arrow: ${e.message}`);
+            }
+        }
+        
+        function testNextArrow() {
+            const nextArrow = window.parent.document.querySelector('.next-arrow');
+            if (!nextArrow) {
+                log('❌ Next arrow not found!');
+                return;
+            }
+            
+            log(`Next arrow state: disabled=${nextArrow.disabled}, pointer-events=${nextArrow.style.pointerEvents}`);
+            
+            // Try to click it
+            try {
+                nextArrow.click();
+                log('✅ Clicked next arrow');
+            } catch (e) {
+                log(`❌ Error clicking next arrow: ${e.message}`);
+            }
+        }
+        
+        function moveToLast() {
+            const grid = window.parent.document.querySelector('.trending-grid');
+            const items = window.parent.document.querySelectorAll('.trending-item');
+            const vw = window.parent.innerWidth;
+            const itemsPerView = vw > 768 ? 4 : vw > 480 ? 2 : 1;
+            const maxIndex = Math.max(0, items.length - itemsPerView);
+            
+            if (grid) {
+                const itemWidth = 100 / itemsPerView;
+                const translateX = -(maxIndex * itemWidth);
+                grid.style.transform = `translateX(${translateX}%)`;
+                grid.dataset.currentIndex = maxIndex.toString();
+                log(`✅ Moved to last position (index ${maxIndex})`);
+                
+                // Check arrow states after move
+                setTimeout(checkState, 100);
+            } else {
+                log('❌ Grid not found!');
+            }
+        }
+        
+        function moveToFirst() {
+            const grid = window.parent.document.querySelector('.trending-grid');
+            
+            if (grid) {
+                grid.style.transform = 'translateX(0%)';
+                grid.dataset.currentIndex = '0';
+                log('✅ Moved to first position (index 0)');
+                
+                // Check arrow states after move
+                setTimeout(checkState, 100);
+            } else {
+                log('❌ Grid not found!');
+            }
+        }
+        
+        function checkState() {
+            const grid = window.parent.document.querySelector('.trending-grid');
+            const prevArrow = window.parent.document.querySelector('.prev-arrow');
+            const nextArrow = window.parent.document.querySelector('.next-arrow');
+            const items = window.parent.document.querySelectorAll('.trending-item');
+            
+            if (!grid || !prevArrow || !nextArrow) {
+                log('❌ Required elements not found!');
+                return;
+            }
+            
+            const vw = window.parent.innerWidth;
+            const itemsPerView = vw > 768 ? 4 : vw > 480 ? 2 : 1;
+            const maxIndex = Math.max(0, items.length - itemsPerView);
+            const currentIndex = parseInt(grid.dataset.currentIndex) || 0;
+            
+            const state = {
+                currentIndex,
+                maxIndex,
+                itemCount: items.length,
+                itemsPerView,
+                transform: grid.style.transform,
+                prevArrow: {
+                    disabled: prevArrow.disabled,
+                    pointerEvents: prevArrow.style.pointerEvents,
+                    opacity: prevArrow.style.opacity,
+                    cursor: prevArrow.style.cursor
+                },
+                nextArrow: {
+                    disabled: nextArrow.disabled,
+                    pointerEvents: nextArrow.style.pointerEvents,
+                    opacity: nextArrow.style.opacity,
+                    cursor: nextArrow.style.cursor
+                }
+            };
+            
+            log(`<strong>Current State:</strong>
+Position: ${state.currentIndex}/${state.maxIndex}
+Items: ${state.itemCount} (${state.itemsPerView} per view)
+Transform: ${state.transform}
+
+<strong>Prev Arrow:</strong>
+  Disabled: ${state.prevArrow.disabled}
+  Pointer Events: ${state.prevArrow.pointerEvents || 'default'}
+  Opacity: ${state.prevArrow.opacity || 'default'}
+  
+<strong>Next Arrow:</strong>
+  Disabled: ${state.nextArrow.disabled}
+  Pointer Events: ${state.nextArrow.pointerEvents || 'default'}
+  Opacity: ${state.nextArrow.opacity || 'default'}`);
+            
+            // Check if arrows are in correct state
+            if (currentIndex > 0 && (prevArrow.disabled || prevArrow.style.pointerEvents === 'none')) {
+                log('⚠️ PROBLEM: Prev arrow should be enabled but is disabled!', 'diagnostic-output');
+            }
+            
+            if (currentIndex < maxIndex && (nextArrow.disabled || nextArrow.style.pointerEvents === 'none')) {
+                log('⚠️ PROBLEM: Next arrow should be enabled but is disabled!', 'diagnostic-output');
+            }
+        }
+        
+        function forceEnablePrev() {
+            const prevArrow = window.parent.document.querySelector('.prev-arrow');
+            if (prevArrow) {
+                prevArrow.style.cssText = 'opacity: 1 !important; pointer-events: auto !important; cursor: pointer !important;';
+                prevArrow.disabled = false;
+                prevArrow.removeAttribute('disabled');
+                prevArrow.setAttribute('aria-disabled', 'false');
+                log('✅ Forced prev arrow to be enabled', 'fix-output');
+                
+                // Try clicking it
+                setTimeout(() => {
+                    prevArrow.click();
+                    log('✅ Attempted click on prev arrow', 'fix-output');
+                }, 100);
+            }
+        }
+        
+        function forceEnableNext() {
+            const nextArrow = window.parent.document.querySelector('.next-arrow');
+            if (nextArrow) {
+                nextArrow.style.cssText = 'opacity: 1 !important; pointer-events: auto !important; cursor: pointer !important;';
+                nextArrow.disabled = false;
+                nextArrow.removeAttribute('disabled');
+                nextArrow.setAttribute('aria-disabled', 'false');
+                log('✅ Forced next arrow to be enabled', 'fix-output');
+            }
+        }
+        
+        function applyUltimateFix() {
+            // Execute in parent window
+            if (window.parent.forcePrev) {
+                window.parent.forcePrev();
+                log('✅ Applied ultimate fix - forcePrev()', 'fix-output');
+            } else {
+                log('❌ Ultimate fix not available', 'fix-output');
+            }
+            
+            if (window.parent.sliderDebug) {
+                window.parent.sliderDebug();
+                log('✅ Called sliderDebug()', 'fix-output');
+            }
+        }
+        
+        function runDiagnostics() {
+            log('<strong>Running Full Diagnostics...</strong>', 'diagnostic-output');
+            
+            // Check for conflicting scripts
+            const scripts = Array.from(window.parent.document.querySelectorAll('script[src]'));
+            const sliderScripts = scripts.filter(s => 
+                s.src.includes('slider') || 
+                s.src.includes('arrow') || 
+                s.src.includes('trending')
+            );
+            
+            log(`Found ${sliderScripts.length} slider-related scripts:`, 'diagnostic-output');
+            sliderScripts.forEach(s => {
+                const filename = s.src.split('/').pop();
+                log(`  - ${filename}`, 'diagnostic-output');
+            });
+            
+            // Check for event listeners
+            const prevArrow = window.parent.document.querySelector('.prev-arrow');
+            const nextArrow = window.parent.document.querySelector('.next-arrow');
+            
+            if (prevArrow) {
+                const hasOnclick = prevArrow.onclick !== null;
+                log(`Prev arrow has onclick: ${hasOnclick}`, 'diagnostic-output');
+            }
+            
+            if (nextArrow) {
+                const hasOnclick = nextArrow.onclick !== null;
+                log(`Next arrow has onclick: ${hasOnclick}`, 'diagnostic-output');
+            }
+            
+            // Check current state
+            checkState();
+            
+            // Test navigation
+            log('\n<strong>Testing Navigation...</strong>', 'diagnostic-output');
+            
+            // Go to last and test prev
+            moveToLast();
+            setTimeout(() => {
+                log('Testing prev arrow at last position...', 'diagnostic-output');
+                testPrevArrow();
+                
+                // Go to first and test next
+                setTimeout(() => {
+                    moveToFirst();
+                    setTimeout(() => {
+                        log('Testing next arrow at first position...', 'diagnostic-output');
+                        testNextArrow();
+                    }, 500);
+                }, 1000);
+            }, 500);
+        }
+        
+        // Auto-run diagnostics on load
+        window.onload = function() {
+            log('Test page loaded. Click buttons to test slider functionality.');
+        };
+    </script>
+</body>
+</html>

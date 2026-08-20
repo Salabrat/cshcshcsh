@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Categories API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .category-card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+        .category-card h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        .category-info {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 10px;
+            margin: 5px 0;
+        }
+        .label {
+            font-weight: bold;
+            color: #666;
+        }
+        .value {
+            color: #333;
+        }
+        .error {
+            color: red;
+            padding: 10px;
+            background: #fee;
+            border: 1px solid #fcc;
+            border-radius: 5px;
+        }
+        .success {
+            color: green;
+            padding: 10px;
+            background: #efe;
+            border: 1px solid #cfc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            background: #007bff;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .menu-preview {
+            border: 2px solid #333;
+            padding: 15px;
+            margin: 20px 0;
+            background: white;
+        }
+        .menu-preview h3 {
+            margin-top: 0;
+        }
+        .menu-preview ul {
+            list-style: none;
+            padding: 0;
+        }
+        .menu-preview li {
+            padding: 5px 0;
+        }
+        .menu-preview a {
+            color: #333;
+            text-decoration: none;
+        }
+        .menu-preview a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>Categories API Test</h1>
+    
+    <div>
+        <button onclick="loadCategories()">Load Categories</button>
+        <button onclick="testMenuUpdate()">Test Menu Update</button>
+        <button onclick="clearOutput()">Clear</button>
+    </div>
+    
+    <div id="status"></div>
+    
+    <div class="menu-preview">
+        <h3>Menu Preview (как должно выглядеть в SHOP)</h3>
+        <ul id="menu-preview"></ul>
+    </div>
+    
+    <h2>Categories from API:</h2>
+    <div id="categories"></div>
+    
+    <h2>Raw JSON:</h2>
+    <pre id="json"></pre>
+
+    <script>
+        async function loadCategories() {
+            const statusDiv = document.getElementById('status');
+            const categoriesDiv = document.getElementById('categories');
+            const jsonDiv = document.getElementById('json');
+            const menuPreview = document.getElementById('menu-preview');
+            
+            try {
+                statusDiv.innerHTML = '<div class="success">Loading categories...</div>';
+                
+                const response = await fetch('/api/categories');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const categories = await response.json();
+                
+                statusDiv.innerHTML = `<div class="success">Loaded ${categories.length} categories successfully!</div>`;
+                
+                // Display categories as cards
+                categoriesDiv.innerHTML = '';
+                categories.forEach(cat => {
+                    const card = document.createElement('div');
+                    card.className = 'category-card';
+                    card.innerHTML = `
+                        <h3>${cat.name}</h3>
+                        <div class="category-info">
+                            <span class="label">ID:</span>
+                            <span class="value">${cat.id}</span>
+                            <span class="label">Slug:</span>
+                            <span class="value">${cat.slug}</span>
+                            <span class="label">Description:</span>
+                            <span class="value">${cat.description || 'No description'}</span>
+                            <span class="label">Products:</span>
+                            <span class="value">${cat.productCount || 0}</span>
+                            <span class="label">Is Default:</span>
+                            <span class="value">${cat.isDefault ? 'Yes' : 'No'}</span>
+                            <span class="label">HTML File:</span>
+                            <span class="value"><a href="category-${cat.slug}.html" target="_blank">category-${cat.slug}.html</a></span>
+                        </div>
+                    `;
+                    categoriesDiv.appendChild(card);
+                });
+                
+                // Display menu preview
+                menuPreview.innerHTML = '';
+                categories.forEach(cat => {
+                    // Skip categories with (RU) in name - same as dynamic-categories-menu.js
+                    if (!cat.name.includes('(RU)')) {
+                        const li = document.createElement('li');
+                        li.innerHTML = `<a href="category-${cat.slug}.html">${cat.name}</a>`;
+                        menuPreview.appendChild(li);
+                    }
+                });
+                
+                // Display raw JSON
+                jsonDiv.textContent = JSON.stringify(categories, null, 2);
+                
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+                console.error('Error loading categories:', error);
+            }
+        }
+        
+        function testMenuUpdate() {
+            document.dispatchEvent(new CustomEvent('categoriesUpdated'));
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = '<div class="success">Event "categoriesUpdated" dispatched. Check the main page to see if menu updated.</div>';
+        }
+        
+        function clearOutput() {
+            document.getElementById('status').innerHTML = '';
+            document.getElementById('categories').innerHTML = '';
+            document.getElementById('json').textContent = '';
+            document.getElementById('menu-preview').innerHTML = '';
+        }
+        
+        // Load categories on page load
+        window.addEventListener('DOMContentLoaded', loadCategories);
+    </script>
+</body>
+</html>

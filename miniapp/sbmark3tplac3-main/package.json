@@ -1,0 +1,57 @@
+{
+  "name": "cp-company-shop",
+  "version": "1.0.0",
+  "description": "C.P. Company online shop with backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "ngrok": "node start-ngrok.js",
+    "cloudflare": "node start-cloudflare.js",
+    "tunnel": "cloudflared tunnel --url http://localhost:3002",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "fashion",
+    "ecommerce",
+    "responsive",
+    "web-design",
+    "front-end",
+    "html5",
+    "css3",
+    "javascript",
+    "mobile-first",
+    "ui-design"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "multer": "^1.4.5-lts.1",
+    "body-parser": "^1.20.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "cssnano": "^6.0.0",
+    "eslint": "^8.50.0",
+    "live-server": "^1.2.2",
+    "postcss": "^8.4.31",
+    "postcss-cli": "^10.1.0",
+    "prettier": "^3.0.3",
+    "terser": "^5.22.0"
+  },
+  "browserslist": [
+    "last 2 versions",
+    "> 1%",
+    "not dead"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/cpcompany-clone.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/cpcompany-clone/issues"
+  },
+  "homepage": "https://github.com/yourusername/cpcompany-clone#readme"
+}

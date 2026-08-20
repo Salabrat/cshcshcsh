@@ -29,6 +29,9 @@ class Config:
     BITPAPA_API_TOKEN = "1wGD6uPJ-xwNPCBUmHDx"  # BitPAPA API токен
     BITPAPA_API_URL = "https://bitpapa.com/api/v1/"  # Base URL для BitPAPA API
 
+    # Mini App Configuration
+    MINIAPP_URL = os.getenv("MINIAPP_URL", "https://tired-plants-cross.loca.lt/TGMiniapp.html")  # URL для Telegram Mini App
+
     IMAGE_PATH = "image/katalog.png"
 
     ADMIN_USERNAME = "pravitelstvo_russian"  # Или используйте cfg.SUPPORT_ID если оно уже есть

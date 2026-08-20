@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Trending Products</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .product-card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+        .product-card h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        .product-info {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 10px;
+            margin: 5px 0;
+        }
+        .label {
+            font-weight: bold;
+            color: #666;
+        }
+        .value {
+            color: #333;
+        }
+        .error {
+            color: red;
+            padding: 10px;
+            background: #fee;
+            border: 1px solid #fcc;
+            border-radius: 5px;
+        }
+        .success {
+            color: green;
+            padding: 10px;
+            background: #efe;
+            border: 1px solid #cfc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            background: #007bff;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .trending-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            background: #ff6b6b;
+            color: white;
+            border-radius: 3px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .image-preview {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            margin: 5px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <h1>Trending Products Test</h1>
+    
+    <div>
+        <button onclick="loadAllProducts()">Load All Products</button>
+        <button onclick="loadTrendingProducts()">Load Trending Only</button>
+        <button onclick="clearOutput()">Clear</button>
+    </div>
+    
+    <div id="status"></div>
+    
+    <h2>Statistics:</h2>
+    <div id="stats"></div>
+    
+    <h2>Trending Products:</h2>
+    <div id="trending"></div>
+    
+    <h2>All Products:</h2>
+    <div id="products"></div>
+
+    <script>
+        async function loadAllProducts() {
+            const statusDiv = document.getElementById('status');
+            const productsDiv = document.getElementById('products');
+            const statsDiv = document.getElementById('stats');
+            
+            try {
+                statusDiv.innerHTML = '<div class="success">Loading all products...</div>';
+                
+                const response = await fetch('/api/products');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // Extract all products
+                const allProducts = [];
+                if (data.products) {
+                    Object.entries(data.products).forEach(([category, categoryProducts]) => {
+                        categoryProducts.forEach(product => {
+                            allProducts.push({...product, category});
+                        });
+                    });
+                }
+                
+                // Count trending products
+                const trendingCount = allProducts.filter(p => p.isTrending === true).length;
+                const activeCount = allProducts.filter(p => p.isActive !== false).length;
+                
+                statusDiv.innerHTML = `<div class="success">Loaded ${allProducts.length} products successfully!</div>`;
+                
+                // Display statistics
+                statsDiv.innerHTML = `
+                    <div class="product-card">
+                        <div class="product-info">
+                            <span class="label">Total Products:</span>
+                            <span class="value">${allProducts.length}</span>
+                            <span class="label">Trending Products:</span>
+                            <span class="value">${trendingCount}</span>
+                            <span class="label">Active Products:</span>
+                            <span class="value">${activeCount}</span>
+                            <span class="label">Categories:</span>
+                            <span class="value">${Object.keys(data.products || {}).join(', ')}</span>
+                        </div>
+                    </div>
+                `;
+                
+                // Display all products
+                productsDiv.innerHTML = '';
+                allProducts.forEach(product => {
+                    const card = document.createElement('div');
+                    card.className = 'product-card';
+                    card.innerHTML = `
+                        <h3>
+                            ${product.name}
+                            ${product.isTrending ? '<span class="trending-badge">TRENDING</span>' : ''}
+                        </h3>
+                        <div class="product-info">
+                            <span class="label">ID:</span>
+                            <span class="value">${product.id}</span>
+                            <span class="label">Category:</span>
+                            <span class="value">${product.category}</span>
+                            <span class="label">Price:</span>
+                            <span class="value">${product.price} ₽</span>
+                            <span class="label">Is Trending:</span>
+                            <span class="value">${product.isTrending === true ? 'YES ✓' : 'NO'}</span>
+                            <span class="label">Is Active:</span>
+                            <span class="value">${product.isActive !== false ? 'YES ✓' : 'NO'}</span>
+                            <span class="label">Images:</span>
+                            <span class="value">${product.images ? product.images.length : 0}</span>
+                        </div>
+                        ${product.images && product.images.length > 0 ? `
+                            <div>
+                                ${product.images.slice(0, 3).map(img => 
+                                    `<img src="${img.url || img}" class="image-preview" alt="${product.name}">`
+                                ).join('')}
+                            </div>
+                        ` : ''}
+                    `;
+                    productsDiv.appendChild(card);
+                });
+                
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+                console.error('Error loading products:', error);
+            }
+        }
+        
+        async function loadTrendingProducts() {
+            const statusDiv = document.getElementById('status');
+            const trendingDiv = document.getElementById('trending');
+            
+            try {
+                statusDiv.innerHTML = '<div class="success">Loading trending products...</div>';
+                
+                const response = await fetch('/api/products');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // Extract all products
+                const allProducts = [];
+                if (data.products) {
+                    Object.values(data.products).forEach(categoryProducts => {
+                        allProducts.push(...categoryProducts);
+                    });
+                }
+                
+                // Filter trending products (same logic as trending-loader.js)
+                const trendingProducts = allProducts.filter(product => 
+                    product.isTrending && product.isActive !== false
+                );
+                
+                statusDiv.innerHTML = `<div class="success">Found ${trendingProducts.length} trending products!</div>`;
+                
+                // Display trending products
+                trendingDiv.innerHTML = '';
+                if (trendingProducts.length === 0) {
+                    trendingDiv.innerHTML = '<div class="error">No trending products found!</div>';
+                } else {
+                    trendingProducts.forEach(product => {
+                        const card = document.createElement('div');
+                        card.className = 'product-card';
+                        card.innerHTML = `
+                            <h3>${product.name} <span class="trending-badge">TRENDING</span></h3>
+                            <div class="product-info">
+                                <span class="label">ID:</span>
+                                <span class="value">${product.id}</span>
+                                <span class="label">Category:</span>
+                                <span class="value">${product.category}</span>
+                                <span class="label">Price:</span>
+                                <span class="value">${product.price} ₽</span>
+                            </div>
+                            ${product.images && product.images.length > 0 ? `
+                                <div>
+                                    ${product.images.slice(0, 2).map(img => 
+                                        `<img src="${img.url || img}" class="image-preview" alt="${product.name}">`
+                                    ).join('')}
+                                </div>
+                            ` : ''}
+                        `;
+                        trendingDiv.appendChild(card);
+                    });
+                }
+                
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+                console.error('Error loading trending products:', error);
+            }
+        }
+        
+        function clearOutput() {
+            document.getElementById('status').innerHTML = '';
+            document.getElementById('products').innerHTML = '';
+            document.getElementById('trending').innerHTML = '';
+            document.getElementById('stats').innerHTML = '';
+        }
+        
+        // Load trending products on page load
+        window.addEventListener('DOMContentLoaded', loadTrendingProducts);
+    </script>
+</body>
+</html>

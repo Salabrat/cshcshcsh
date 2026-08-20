@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>КОФТЫ - C.P. Company</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="product-modal.css">
+    <link rel="stylesheet" href="category-header-switch.css">
+</head>
+<body>
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <div class="top-bar-wrapper">
+            <div class="top-bar-left">
+                <!-- Empty for now, can add content later -->
+            </div>
+            <div class="top-bar-right">
+                <a href="login.html" class="top-bar-link">Login</a>
+                <span class="top-bar-separator">/</span>
+                <a href="register.html" class="top-bar-link">Register</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="header category-header">
+        <div class="header-wrapper">
+            <!-- Logo -->
+            <div class="logo">
+                <a href="index.html">
+                    <!-- Logo will be loaded dynamically via JavaScript -->
+                </a>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="main-nav" id="mainNav">
+                <ul class="nav-list">
+                    <li class="nav-item has-dropdown">
+                        <a href="#" class="nav-link" id="shopLink">SHOP</a>
+                        <!-- Mega Menu with Tabs -->
+                        <div class="mega-menu" id="megaMenu">
+                            <div class="mega-menu-content">
+                                <!-- Tabs -->
+                                <div class="mega-menu-tabs">
+                                    <button class="mega-menu-tab active" data-tab="main-collection">MAIN COLLECTION</button>
+                                    <button class="mega-menu-tab" data-tab="brand-collection">BRAND</button>
+                                </div>
+                                
+                                <!-- Main Collection Tab Content -->
+                                <div class="mega-menu-tab-content active" id="main-collection">
+                                    <div class="mega-menu-single-column">
+                                        <div class="mega-menu-section">
+                                            <ul class="mega-menu-list">
+                                                <li><a href="shop-all.html" class="mega-menu-link"><span class="arrow">></span> SHOP ALL</a></li>
+                                                <li><a href="category-jackets.html" class="mega-menu-link"><span class="arrow">></span> КУРТКИ</a></li>
+                                                <li><a href="category-shoes.html" class="mega-menu-link"><span class="arrow">></span> ОБУВЬ</a></li>
+                                                <li><a href="category-coats.html" class="mega-menu-link"><span class="arrow">></span> ПАЛЬТО</a></li>
+                                                <li><a href="category-sweaters.html" class="mega-menu-link"><span class="arrow">></span> КОФТЫ</a></li>
+                                                <li><a href="category-glasses.html" class="mega-menu-link"><span class="arrow">></span> ОЧКИ</a></li>
+                                                <li><a href="category-pants.html" class="mega-menu-link"><span class="arrow">></span> ШТАНЫ</a></li>
+                                                <li><a href="category-hats.html" class="mega-menu-link"><span class="arrow">></span> ГОЛОВНОЙ УБОР</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Brand Tab Content -->
+                                <div class="mega-menu-tab-content" id="brand-collection">
+                                    <div class="mega-menu-single-column">
+                                        <div class="mega-menu-section">
+                                            <ul class="mega-menu-list" id="brandMenuList">
+                                                <!-- Brands will be loaded dynamically -->
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Header Actions -->
+            <div class="header-actions">
+                <button class="header-icon search-btn" aria-label="Search">SEARCH</button>
+                <button class="header-icon mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Search Overlay -->
+    <div class="search-overlay" id="searchOverlay">
+        <div class="search-content">
+            <button class="search-close" id="searchClose">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <form class="search-form">
+                <input type="search" placeholder="Search..." class="search-input">
+                <button type="submit" class="search-submit">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb">
+        <div class="container">
+            <a href="index.html">HOME</a> / <a href="#">SHOP</a> / <span>КОФТЫ</span>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="shop-main">
+        <div class="container">
+            <!-- Admin Controls -->
+            <div class="admin-controls" id="adminControls">
+                <button class="admin-btn" onclick="openAddProductModal('sweaters')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Добавить товар
+                </button>
+            </div>
+
+            <!-- Shop Header -->
+            <div class="shop-header">
+                <h1 class="shop-title">КОФТЫ</h1>
+                <p class="shop-description">Коллекция свитшотов и толстовок C.P. Company предлагает комфорт и стиль для повседневной носки. Качественные материалы и продуманный дизайн для активного образа жизни.</p>
+            </div>
+
+            <!-- Admin Controls -->
+            <div class="admin-controls" id="adminControls">
+                <button class="btn btn-add-product" onclick="openAddProductModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Добавить товар
+                </button>
+            </div>
+
+            <!-- Filters and Controls -->
+            <div class="shop-controls">
+                <div class="shop-info">
+                    <span class="product-count" data-category="КОФТЫ">0 изделий</span>
+                </div>
+                <div class="shop-actions">
+                    <div class="filter-dropdown">
+                        <button class="filters-btn" id="filterBtn">
+                            FILTERS
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </button>
+                        <div class="filter-menu" id="filterMenu">
+                            <div class="filter-option" data-sort="price-asc">
+                                <span>Цена: по возрастанию</span>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="18 15 12 9 6 15"></polyline>
+                                </svg>
+                            </div>
+                            <div class="filter-option" data-sort="price-desc">
+                                <span>Цена: по убыванию</span>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </div>
+                            <div class="filter-option" data-sort="name-asc">
+                                <span>Название: А-Я</span>
+                            </div>
+                            <div class="filter-option" data-sort="name-desc">
+                                <span>Название: Я-А</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="view-controls">
+                        <button class="view-btn" data-view="grid-2">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="7" height="7"></rect>
+                                <rect x="14" y="3" width="7" height="7"></rect>
+                                <rect x="3" y="14" width="7" height="7"></rect>
+                                <rect x="14" y="14" width="7" height="7"></rect>
+                            </svg>
+                        </button>
+                        <button class="view-btn active" data-view="grid-4">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="4" height="4"></rect>
+                                <rect x="10" y="3" width="4" height="4"></rect>
+                                <rect x="17" y="3" width="4" height="4"></rect>
+                                <rect x="3" y="10" width="4" height="4"></rect>
+                                <rect x="10" y="10" width="4" height="4"></rect>
+                                <rect x="17" y="10" width="4" height="4"></rect>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Products Grid -->
+            <div class="products-grid grid-4" id="productsGrid" data-category="КОФТЫ">
+                <div class="empty-catalog">
+                    <div class="empty-icon">
+                        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                            <circle cx="9" cy="21" r="1"></circle>
+                            <circle cx="20" cy="21" r="1"></circle>
+                            <path d="m1 1 4 4 2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                        </svg>
+                    </div>
+                    <h3>В категории "КОФТЫ" пока нет товаров</h3>
+                    <p>Товары будут добавлены администратором</p>
+                </div>
+            </div>
+
+            <!-- Load More Button -->
+            <div class="load-more-section">
+                <button class="btn btn-load-more">ПОКАЗАТЬ ЕЩЕ</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section social-section">
+                    <div class="social-links">
+                        <a href="#" id="social-telegram" aria-label="Telegram" target="_blank" rel="noopener noreferrer">
+                            <span>telegram</span>
+                        </a>
+                        <a href="#" id="social-vk" aria-label="VK" target="_blank" rel="noopener noreferrer">
+                            <span>vk</span>
+                        </a>
+                        <a href="#" id="social-instagram" aria-label="Instagram" target="_blank" rel="noopener noreferrer">
+                            <span>insta</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 C.P. Company. All Rights Reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-menu-overlay" id="mobileMenuOverlay"></div>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <div class="mobile-menu-header">
+            <div class="mobile-menu-logo">
+                <svg width="60" height="40" viewBox="0 0 60 40" fill="none">
+                    <text x="0" y="20" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="currentColor">C.P.</text>
+                    <text x="0" y="32" font-family="Arial, sans-serif" font-size="8" font-weight="normal" fill="currentColor">COMPANY</text>
+                </svg>
+            </div>
+            <button class="mobile-menu-close" id="mobileMenuClose">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <nav class="mobile-menu-nav">
+            <ul class="mobile-menu-list">
+                <li class="mobile-menu-item has-dropdown">
+                    <a href="#" class="mobile-menu-link shop-menu-toggle" id="shopMenuToggle">
+                        SHOP
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="dropdown-arrow">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </a>
+                    <ul class="mobile-dropdown-menu" id="shopDropdown">
+                        <li class="mobile-dropdown-item">
+                            <a href="shop-all.html" class="mobile-dropdown-link">SHOP ALL</a>
+                        </li>
+                        <li class="mobile-dropdown-item expandable">
+                            <a href="#" class="mobile-dropdown-link focus-toggle">
+                                CATEGORIES
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="focus-arrow">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </a>
+                            <ul class="mobile-dropdown-nested">
+                                <li><a href="category-jackets.html" class="mobile-dropdown-nested-link">КУРТКИ</a></li>
+                                <li><a href="category-shoes.html" class="mobile-dropdown-nested-link">ОБУВЬ</a></li>
+                                <li><a href="category-coats.html" class="mobile-dropdown-nested-link">ПАЛЬТО</a></li>
+                                <li><a href="category-sweaters.html" class="mobile-dropdown-nested-link">КОФТЫ</a></li>
+                                <li><a href="category-glasses.html" class="mobile-dropdown-nested-link">ОЧКИ</a></li>
+                                <li><a href="category-pants.html" class="mobile-dropdown-nested-link">ШТАНЫ</a></li>
+                                <li><a href="category-hats.html" class="mobile-dropdown-nested-link">ГОЛОВНОЙ УБОР</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
+                <li class="mobile-menu-item has-dropdown">
+                    <a href="#" class="mobile-menu-link brand-menu-toggle" id="brandMenuToggle">
+                        BRAND
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="dropdown-arrow">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </a>
+                    <ul class="mobile-dropdown-menu" id="mobileBrandsList">
+                        <!-- Brands will be loaded dynamically -->
+                    </ul>
+                </li>
+            </ul>
+        </nav>
+    </div>
+
+    <script src="script.js"></script>
+    <script src="product-counter.js"></script>
+    <script src="database-api.js"></script>
+    <script src="product-manager-api.js"></script>
+    <script src="product-loader-api.js"></script>
+    <script src="product-modal.js"></script>
+    
+    <!-- Inline mobile menu script as backup -->
+    <script>
+        // Backup mobile menu functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const mobileMenu = document.getElementById('mobileMenu');
+            const mobileMenuClose = document.getElementById('mobileMenuClose');
+            const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+            
+            console.log('Backup script - Elements found:', {
+                btn: !!mobileMenuBtn,
+                menu: !!mobileMenu,
+                close: !!mobileMenuClose,
+                overlay: !!mobileMenuOverlay
+            });
+            
+            if (mobileMenuBtn && mobileMenu && mobileMenuOverlay) {
+                mobileMenuBtn.onclick = function(e) {
+                    e.preventDefault();
+                    console.log('Backup: Opening mobile menu');
+                    mobileMenu.classList.add('active');
+                    mobileMenuOverlay.classList.add('active');
+                    document.body.style.overflow = 'hidden';
+                };
+                
+                if (mobileMenuClose) {
+                    mobileMenuClose.onclick = function(e) {
+                        e.preventDefault();
+                        console.log('Backup: Closing mobile menu');
+                        mobileMenu.classList.remove('active');
+                        mobileMenuOverlay.classList.remove('active');
+                        document.body.style.overflow = '';
+                    };
+                }
+                
+                mobileMenuOverlay.onclick = function() {
+                    console.log('Backup: Closing via overlay');
+                    mobileMenu.classList.remove('active');
+                    mobileMenuOverlay.classList.remove('active');
+                    document.body.style.overflow = '';
+                };
+            }
+        });
+    </script>
+    <script src="brand-navigation.js"></script>
+    <script src="dynamic-categories-menu.js"></script>
+    <script src="category-header-switch-v2.js"></script>
+    <!-- Modern sticky navigation with IntersectionObserver -->
+    <script src="category-sticky-navigation.js"></script>
+    <!-- Breadcrumb SHOP menu integration -->
+    <script src="breadcrumb-shop-menu.js"></script>
+    <!-- Mega menu tabs functionality -->
+    <script src="mega-menu-tabs.js"></script>
+    <!-- Search functionality with autocomplete -->
+    <script src="search.js"></script>
+    <!-- Load header logo -->
+    <script src="load-header-logo.js"></script>
+    <!-- Load social links -->
+    <script src="load-social-links.js"></script>
+    <!-- Load custom menu labels -->
+    <script src="load-menu-labels.js"></script>
+</body>
+</html>

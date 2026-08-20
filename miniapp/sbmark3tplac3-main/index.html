@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+    <link rel="stylesheet" href="loading-screen.css">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="product-modal.css">
+    <link rel="stylesheet" href="inline-text-editor.css">
+    <link rel="stylesheet" href="direct-text-editor.css">
+    <link rel="stylesheet" href="brand-styles.css">
+    <link rel="stylesheet" href="hide-edit-mode-button.css">
+    <link rel="stylesheet" href="hero-admin-editor.css">
+    <link rel="stylesheet" href="fonts/akony.css">
+    
+    <!-- Immediate aggressive slider position fix -->
+    <script>
+        // Aggressive fix to ensure no white space after last product
+        function immediateSliderFix() {
+            const grid = document.querySelector('.trending-grid');
+            if (!grid) return false;
+            
+            const items = document.querySelectorAll('.trending-item');
+            if (!items || items.length === 0) return false;
+            
+            const vw = window.innerWidth;
+            const itemsPerView = vw > 768 ? 4 : vw > 480 ? 2 : 1;
+            const maxIndex = Math.max(0, items.length - itemsPerView);
+            
+            let currentIndex = parseInt(grid.dataset.currentIndex) || 0;
+            
+            // Always clamp to valid range
+            if (currentIndex > maxIndex || currentIndex < 0) {
+                currentIndex = Math.min(Math.max(0, currentIndex), maxIndex);
+                const translateX = -(currentIndex * (100 / itemsPerView));
+                grid.style.transform = `translateX(${translateX}%)`;
+                grid.dataset.currentIndex = currentIndex.toString();
+                
+                // Force disable next arrow if at max
+                const nextArrow = document.querySelector('.next-arrow');
+                if (nextArrow && currentIndex >= maxIndex) {
+                    // Use multiple methods to ensure it's disabled
+                    nextArrow.style.cssText = 'opacity: 0.3 !important; pointer-events: none !important; cursor: not-allowed !important;';
+                    nextArrow.setAttribute('disabled', 'true');
+                    nextArrow.classList.add('disabled');
+                    
+                    // Override click handler
+                    nextArrow.onclick = function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return false;
+                    };
+                }
+                
+                console.log('Immediate fix applied:', currentIndex, '/', maxIndex);
+                return true;
+            }
+            return false;
+        }
+        
+        // Run as soon as possible
+        document.addEventListener('DOMContentLoaded', function() {
+            // Try multiple times with increasing delays
+            immediateSliderFix();
+            [50, 100, 250, 500, 1000, 1500, 2000].forEach(delay => {
+                setTimeout(immediateSliderFix, delay);
+            });
+        });
+        
+        // Also run on load
+        window.addEventListener('load', immediateSliderFix);
+    </script>
+    <!-- Immediate hide to prevent flash of content -->
+    <style>
+        body { visibility: hidden; opacity: 0; }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen Script - Must be first in body -->
+    <script src="loading-screen.js"></script>
+    
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <div class="top-bar-wrapper">
+            <div class="top-bar-left">
+                <!-- Empty for now, can add content later -->
+            </div>
+            <div class="top-bar-right">
+                <a href="login.html" class="top-bar-link">Login</a>
+                <span class="top-bar-separator">/</span>
+                <a href="register.html" class="top-bar-link">Register</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-wrapper">
+            <!-- Logo -->
+            <div class="header-logo">
+                <a href="/">
+                    <!-- Logo will be loaded dynamically via JavaScript -->
+                </a>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="main-nav" id="mainNav">
+                <ul class="nav-list">
+                    <li class="nav-item has-dropdown">
+                        <a href="#" class="nav-link" id="shopLink">SHOP</a>
+                        <!-- Mega Menu with Tabs -->
+                        <div class="mega-menu" id="megaMenu">
+                            <div class="mega-menu-content">
+                                <!-- Tabs -->
+                                <div class="mega-menu-tabs">
+                                    <button class="mega-menu-tab active" data-tab="main-collection">MAIN COLLECTION</button>
+                                    <button class="mega-menu-tab" data-tab="brand-collection">BRAND</button>
+                                </div>
+                                
+                                <!-- Main Collection Tab Content -->
+                                <div class="mega-menu-tab-content active" id="main-collection">
+                                    <div class="mega-menu-single-column">
+                                        <div class="mega-menu-section">
+                                            <ul class="mega-menu-list">
+                                                <li><a href="shop-all.html" class="mega-menu-link"><span class="arrow">></span> SHOP ALL</a></li>
+                                                <li><a href="category-jackets.html" class="mega-menu-link"><span class="arrow">></span> КУРТКИ</a></li>
+                                                <li><a href="category-shoes.html" class="mega-menu-link"><span class="arrow">></span> ОБУВЬ</a></li>
+                                                <li><a href="category-coats.html" class="mega-menu-link"><span class="arrow">></span> ПАЛЬТО</a></li>
+                                                <li><a href="category-sweaters.html" class="mega-menu-link"><span class="arrow">></span> КОФТЫ</a></li>
+                                                <li><a href="category-glasses.html" class="mega-menu-link"><span class="arrow">></span> ОЧКИ</a></li>
+                                                <li><a href="category-pants.html" class="mega-menu-link"><span class="arrow">></span> ШТАНЫ</a></li>
+                                                <li><a href="category-hats.html" class="mega-menu-link"><span class="arrow">></span> ГОЛОВНОЙ УБОР</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Brand Tab Content -->
+                                <div class="mega-menu-tab-content" id="brand-collection">
+                                    <div class="mega-menu-single-column">
+                                        <div class="mega-menu-section">
+                                            <ul class="mega-menu-list" id="brandMenuList">
+                                                <!-- Brands will be loaded dynamically -->
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Header Actions -->
+            <div class="header-actions">
+                <button class="header-icon search-btn" aria-label="Search">SEARCH</button>
+                <button class="header-icon mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Search Overlay -->
+    <div class="search-overlay" id="searchOverlay">
+        <div class="search-content">
+            <button class="search-close" id="searchClose">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <form class="search-form">
+                <input type="search" placeholder="Search..." class="search-input">
+                <button type="submit" class="search-submit">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-menu-overlay" id="mobileMenuOverlay"></div>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <div class="mobile-menu-header">
+            <div class="mobile-menu-logo">
+                <svg width="60" height="40" viewBox="0 0 60 40" fill="none">
+                    <text x="0" y="20" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="currentColor">C.P.</text>
+                    <text x="0" y="32" font-family="Arial, sans-serif" font-size="8" font-weight="normal" fill="currentColor">COMPANY</text>
+                </svg>
+            </div>
+            <button class="mobile-menu-close" id="mobileMenuClose">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <nav class="mobile-menu-nav">
+            <ul class="mobile-menu-list">
+                <li class="mobile-menu-item has-dropdown">
+                    <a href="#" class="mobile-menu-link shop-menu-toggle" id="shopMenuToggle">
+                        SHOP
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="dropdown-arrow">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </a>
+                    <ul class="mobile-dropdown-menu" id="shopDropdown">
+                        <li class="mobile-dropdown-item">
+                            <a href="shop-all.html" class="mobile-dropdown-link">SHOP ALL</a>
+                        </li>
+                        <li class="mobile-dropdown-item expandable">
+                            <a href="#" class="mobile-dropdown-link focus-toggle">
+                                CATEGORIES
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="focus-arrow">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </a>
+                            <ul class="mobile-dropdown-nested" id="mobileCategoriesMenu">
+                                <!-- Categories will be loaded dynamically -->
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
+                <li class="mobile-menu-item has-dropdown">
+                    <a href="#" class="mobile-menu-link brand-menu-toggle" id="brandMenuToggle">
+                        BRAND
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="dropdown-arrow">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </a>
+                    <ul class="mobile-dropdown-menu" id="mobileBrandsList">
+                        <!-- Brands will be loaded dynamically -->
+                    </ul>
+                </li>
+            </ul>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Hero Section -->
+        <section class="hero hero-section">
+            <div class="hero-image">
+                <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="High Performance Jackets" class="hero-background">
+            </div>
+            <div class="hero-content">
+                <h1 class="hero-title">HIGH<br>PERFORMANCE<br>JACKETS</h1>
+                <p class="hero-subtitle">Cutting-edge technologies for all winter conditions</p>
+                <a href="shop-all.html" class="btn btn-white" data-text-id="hero-btn">SHOP NOW</a>
+            </div>
+        </section>
+
+        <!-- Trending Now Section -->
+        <section class="trending-section">
+            <div class="trending-header">
+                <h2 class="section-label">TRENDING NOW</h2>
+            </div>
+            <div class="trending-slider">
+                <button class="slider-arrow prev-arrow" aria-label="Previous">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                </button>
+                <div class="trending-grid">
+                    <!-- Trending products will be loaded here dynamically -->
+                </div>
+                <button class="slider-arrow next-arrow" aria-label="Next">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </button>
+            </div>
+        </section>
+
+        <!-- Campaign Section 1 - FW025 ADV -->
+        <section class="campaign-section campaign-dark">
+            <div class="campaign-content-wrapper">
+                <div class="campaign-image">
+                    <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="FW025 ADV Campaign">
+                </div>
+                <div class="campaign-content">
+                    <p class="campaign-label">FALL WINTER 025</p>
+                    <h2 class="campaign-title">FW025 ADV<br>CAMPAIGN</h2>
+                    <p class="campaign-description">Sportswear, Not for playing in</p>
+                    <a href="shop-all.html" class="btn btn-outline-white" data-text-id="campaign1-btn">DISCOVER MORE</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Campaign Section 2 - Puffer -->
+        <section class="campaign-section campaign-split">
+            <div class="campaign-split-wrapper">
+                <div class="campaign-split-content">
+                    <p class="campaign-label">FALL WINTER 025</p>
+                    <h2 class="campaign-title">PUFFER</h2>
+                    <p class="campaign-description">Cold-Weather Icons: soft-touch essentials in updated colourways</p>
+                    <a href="shop-all.html" class="btn btn-outline-white" data-text-id="campaign2-btn">DISCOVER MORE</a>
+                </div>
+                <div class="campaign-split-image">
+                    <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Puffer">
+                </div>
+            </div>
+        </section>
+
+        <!-- Campaign Section 3 - Metropolis -->
+        <section class="campaign-section campaign-split campaign-split-reverse">
+            <div class="campaign-split-wrapper">
+                <div class="campaign-split-image">
+                    <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="The Metropolis Series">
+                </div>
+                <div class="campaign-split-content">
+                    <p class="campaign-label">FALL WINTER 025</p>
+                    <h2 class="campaign-title">THE METROPOLIS<br>SERIES</h2>
+                    <p class="campaign-description">Functionality and performance for the contemporary urban environment</p>
+                    <a href="shop-all.html" class="btn btn-outline-white" data-text-id="campaign3-btn">DISCOVER MORE</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- About Section -->
+        <section class="about-section">
+            <div class="about-header">
+                <h2 class="about-title">ABOUT C.P. COMPANY</h2>
+                <p class="about-text">In 1971, Italian designer Massimo Osti founded Chester Perry, a brand best known for its screen-printed t-shirts. In 1978, it was renamed C.P. Company, marking the beginning of one of the most creative and influential eras in contemporary sportswear. For over 50 years, C.P. Company has pioneered a hybrid style that merged military, workwear, and sportswear influences, supported by ongoing research into cutting-edge fabrics and textile technologies. Among its most significant innovations is garment dyeing, first developed in the mid-'70s and still a defining hallmark of the brand's collections. This fusion of functional design and Italian textile innovation lies at the core of C.P. Company and continues to shape every garment that carries its name.</p>
+            </div>
+            <div class="about-grid">
+                <div class="about-item" onclick="window.location.href='category-jackets.html'" style="cursor: pointer;">
+                    <div class="about-item-image">
+                        <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Jackets & Coats">
+                    </div>
+                    <h3 class="about-item-title">JACKETS & COATS</h3>
+                </div>
+                <div class="about-item" onclick="window.location.href='category-sweaters.html'" style="cursor: pointer;">
+                    <div class="about-item-image">
+                        <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Sweatshirts">
+                    </div>
+                    <h3 class="about-item-title">SWEATSHIRTS</h3>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-wrapper">
+            <!-- Newsletter Section -->
+            <div class="footer-newsletter">
+                <h3 class="footer-newsletter-title">ПОДПИСАТЬСЯ НА РАССЫЛКУ</h3>
+                <p class="footer-newsletter-text">Мы дадим вам скидку 10% на все модели в коллекции для вашей первой покупки. Продажа товаров и ностальгартные цвета исключены.</p>
+                <form class="newsletter-form">
+                    <input type="email" placeholder="Enter your email" required>
+                    <button type="submit" class="btn btn-newsletter">SIGN UP</button>
+                </form>
+            </div>
+
+            <!-- Footer Links -->
+            <div class="footer-links">
+                <div class="footer-column social-section">
+                    <div class="social-links">
+                        <a href="#" id="social-telegram" aria-label="Telegram" target="_blank" rel="noopener noreferrer">
+                            <span>telegram</span>
+                        </a>
+                        <a href="#" id="social-vk" aria-label="VK" target="_blank" rel="noopener noreferrer">
+                            <span>vk</span>
+                        </a>
+                        <a href="#" id="social-instagram" aria-label="Instagram" target="_blank" rel="noopener noreferrer">
+                            <span>insta</span>
+                        </a>
+                </div>
+                </div>
+            </div>
+
+            <!-- Footer Bottom -->
+            <div class="footer-bottom">
+                <p>&copy; 2024 C.P. Company. All Rights Reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Product Modal Container -->
+    <div id="product-modal-container"></div>
+
+    <!-- JavaScript -->
+    <!-- Emergency arrow fix - must run first -->
+    <script src="emergency-arrow-fix.js"></script>
+    <!-- Site stabilizer to prevent errors -->
+    <script src="site-stabilizer.js"></script>
+    <!-- Debug script to catch errors -->
+    <script src="debug-errors.js"></script>
+    <script src="brand-navigation.js"></script>
+    <script src="dynamic-categories-menu.js"></script>
+    <!-- Script files MUST be last before closing body tag -->
+    <script src="script.js"></script>
+    <!-- Additional scripts -->
+    <script src="product-loader.js" defer></script>
+    <script src="product-modal.js" defer></script>
+    <!-- Trending products loader -->
+    <script src="trending-loader.js" defer></script>
+    <!-- Fix slider calculation for proper scrolling to last items -->
+    <script src="fix-slider-calculation.js" defer></script>
+    <!-- Absolute slider fix - ensures proper arrow behaviour -->
+    <script src="absolute-slider-fix.js" defer></script>
+    <!-- Load saved homepage images for all users -->
+    <script src="load-homepage-images.js"></script>
+    <!-- Load saved homepage texts for all users -->
+    <script src="load-homepage-texts.js"></script>
+    <!-- Load saved button texts for all users -->
+    <script src="load-button-texts.js"></script>
+    <!-- Load saved campaign content for all users -->
+    <script src="load-campaign-content.js"></script>
+    <!-- Load saved hero content for all users (after button-texts to override hero-btn) -->
+    <script src="load-hero-content.js"></script>
+    <!-- Load saved about content for all users -->
+    <script src="load-about-content.js"></script>
+    <!-- Security check to ensure proper authorization -->
+    <script src="security-check.js"></script>
+    <!-- Admin scripts will be loaded dynamically only for authorized admins -->
+    <script src="admin-loader.js"></script>
+    <!-- Hero admin editor -->
+    <script src="hero-admin-editor.js"></script>
+    <!-- Brand navigation dropdown -->
+    <script src="brand-navigation.js"></script>
+    <!-- Mega menu tabs functionality -->
+    <script src="mega-menu-tabs.js"></script>
+    <!-- Search functionality with autocomplete -->
+    <script src="search.js"></script>
+    <!-- Force text editor disabled - using block editor instead -->
+    <!-- Load social links -->
+    <script src="load-social-links.js"></script>
+    <!-- Load header logo -->
+    <script src="load-header-logo.js"></script>
+    <!-- Load custom menu labels -->
+    <script src="load-menu-labels.js"></script>
+</body>
+</html>

@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Отладка токена</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+        
+        .section {
+            background: #252526;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            border: 1px solid #3e3e42;
+        }
+        
+        h2 {
+            color: #4ec9b0;
+            margin-top: 0;
+        }
+        
+        button {
+            background: #0e639c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        
+        button:hover {
+            background: #1177bb;
+        }
+        
+        .success {
+            color: #4ec9b0;
+        }
+        
+        .error {
+            color: #f48771;
+        }
+        
+        .log {
+            background: #1e1e1e;
+            padding: 10px;
+            margin-top: 10px;
+            border: 1px solid #3e3e42;
+            border-radius: 3px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #3e3e42;
+            padding-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Отладка токена администратора</h1>
+
+    <div class="section">
+        <h2>1. Проверка localStorage</h2>
+        <button onclick="checkLocalStorage()">Проверить localStorage</button>
+        <div id="localStorageResult" class="log"></div>
+    </div>
+
+    <div class="section">
+        <h2>2. Вход администратора</h2>
+        <button onclick="doLogin()">Войти как admin</button>
+        <div id="loginResult" class="log"></div>
+    </div>
+
+    <div class="section">
+        <h2>3. Проверка токена на сервере</h2>
+        <button onclick="checkToken()">Проверить токен</button>
+        <div id="tokenCheckResult" class="log"></div>
+    </div>
+
+    <div class="section">
+        <h2>4. Тест сохранения настроек</h2>
+        <button onclick="testSaveSettings()">Протестировать сохранение</button>
+        <div id="saveTestResult" class="log"></div>
+    </div>
+
+    <script>
+        function log(containerId, message, type = 'info') {
+            const container = document.getElementById(containerId);
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : (type === 'success' ? 'success' : '');
+            
+            entry.innerHTML = `<span class="${className}">[${timestamp}] ${message}</span>`;
+            container.appendChild(entry);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function checkLocalStorage() {
+            const container = document.getElementById('localStorageResult');
+            container.innerHTML = '';
+            
+            log('localStorageResult', '=== Проверка localStorage ===');
+            
+            const token = localStorage.getItem('adminToken');
+            const userLoggedIn = localStorage.getItem('userLoggedIn');
+            const username = localStorage.getItem('username');
+            
+            log('localStorageResult', `adminToken: ${token ? '✅ Есть (' + token.substring(0, 20) + '...)' : '❌ Нет'}`, token ? 'success' : 'error');
+            log('localStorageResult', `userLoggedIn: ${userLoggedIn}`, userLoggedIn ? 'success' : 'info');
+            log('localStorageResult', `username: ${username}`, username ? 'success' : 'info');
+            
+            log('localStorageResult', `Длина токена: ${token ? token.length : 0}`);
+        }
+
+        async function doLogin() {
+            const container = document.getElementById('loginResult');
+            container.innerHTML = '';
+            
+            log('loginResult', '=== Попытка входа ===');
+            
+            try {
+                log('loginResult', 'Отправка запроса на /api/admin/login...');
+                
+                const response = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    })
+                });
+                
+                log('loginResult', `Статус ответа: ${response.status}`);
+                
+                const data = await response.json();
+                log('loginResult', `Ответ сервера: ${JSON.stringify(data)}`);
+                
+                if (data.success && data.token) {
+                    localStorage.setItem('adminToken', data.token);
+                    localStorage.setItem('userLoggedIn', 'true');
+                    localStorage.setItem('username', 'admin');
+                    
+                    log('loginResult', '✅ Токен сохранен в localStorage', 'success');
+                    log('loginResult', `Токен: ${data.token.substring(0, 30)}...`, 'success');
+                } else {
+                    log('loginResult', '❌ Ошибка входа: ' + (data.message || 'Неизвестная ошибка'), 'error');
+                }
+            } catch (error) {
+                log('loginResult', '❌ Ошибка: ' + error.message, 'error');
+                console.error(error);
+            }
+        }
+
+        async function checkToken() {
+            const container = document.getElementById('tokenCheckResult');
+            container.innerHTML = '';
+            
+            log('tokenCheckResult', '=== Проверка токена на сервере ===');
+            
+            const token = localStorage.getItem('adminToken');
+            
+            if (!token) {
+                log('tokenCheckResult', '❌ Токен не найден в localStorage!', 'error');
+                log('tokenCheckResult', 'Сначала выполните вход (Шаг 2)', 'error');
+                return;
+            }
+            
+            log('tokenCheckResult', `Токен из localStorage: ${token.substring(0, 30)}...`);
+            
+            try {
+                log('tokenCheckResult', 'Отправка запроса на /api/check-admin...');
+                
+                const response = await fetch('/api/check-admin', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+                
+                log('tokenCheckResult', `Статус ответа: ${response.status}`);
+                
+                const data = await response.json();
+                log('tokenCheckResult', `Ответ сервера: ${JSON.stringify(data)}`);
+                
+                if (data.isAdmin) {
+                    log('tokenCheckResult', '✅ Токен валиден! Вы администратор.', 'success');
+                } else {
+                    log('tokenCheckResult', '❌ Токен невалиден или сессия истекла', 'error');
+                }
+            } catch (error) {
+                log('tokenCheckResult', '❌ Ошибка: ' + error.message, 'error');
+                console.error(error);
+            }
+        }
+
+        async function testSaveSettings() {
+            const container = document.getElementById('saveTestResult');
+            container.innerHTML = '';
+            
+            log('saveTestResult', '=== Тест сохранения настроек ===');
+            
+            const token = localStorage.getItem('adminToken');
+            
+            if (!token) {
+                log('saveTestResult', '❌ Токен не найден! Сначала выполните вход (Шаг 2)', 'error');
+                return;
+            }
+            
+            log('saveTestResult', `Использую токен: ${token.substring(0, 30)}...`);
+            
+            try {
+                log('saveTestResult', 'Отправка запроса на /api/site-settings...');
+                log('saveTestResult', `Заголовок Authorization: Bearer ${token.substring(0, 20)}...`);
+                
+                const response = await fetch('/api/site-settings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({
+                        logoUrl: 'https://example.com/test-logo.png'
+                    })
+                });
+                
+                log('saveTestResult', `Статус ответа: ${response.status}`);
+                log('saveTestResult', `response.ok: ${response.ok}`);
+                
+                const contentType = response.headers.get('content-type');
+                log('saveTestResult', `Content-Type: ${contentType}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log('saveTestResult', `✅ Успешно! Ответ: ${JSON.stringify(data)}`, 'success');
+                } else {
+                    const errorText = await response.text();
+                    log('saveTestResult', `❌ Ошибка! Ответ сервера: ${errorText}`, 'error');
+                    
+                    if (response.status === 401) {
+                        log('saveTestResult', '❌ 401 Unauthorized - Токен не принят сервером', 'error');
+                    }
+                }
+            } catch (error) {
+                log('saveTestResult', '❌ Ошибка: ' + error.message, 'error');
+                console.error(error);
+            }
+        }
+
+        // Auto-check on load
+        window.addEventListener('load', () => {
+            setTimeout(checkLocalStorage, 500);
+        });
+    </script>
+</body>
+</html>

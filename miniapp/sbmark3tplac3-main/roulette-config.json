@@ -1,0 +1,63 @@
+{
+  "enabled": true,
+  "unlimitedSpins": true,
+  "spinCooldownHours": 1,
+  "couponDurationHours": 1,
+  "slots": [
+    {
+      "id": 1,
+      "name": "CP COMPAY DD SHELL PUFF JACKET",
+      "prize": "CP COMPAY DD SHELL PUFF JACKET",
+      "image": "/uploads/image-1771251983761-448893479.png",
+      "rarity": "legendary",
+      "weight": 1,
+      "isActive": true
+    },
+    {
+      "id": 2,
+      "name": "5% SALE",
+      "prize": "5% Скидка",
+      "image": "/uploads/image-1771344545588-16138127.png",
+      "rarity": "common",
+      "weight": 5,
+      "isActive": true
+    },
+    {
+      "id": 3,
+      "name": "20% скидка",
+      "prize": "20% скидка",
+      "image": "/uploads/image-1771252545966-783464741.png",
+      "rarity": "epic",
+      "weight": 1,
+      "isActive": true
+    },
+    {
+      "id": 4,
+      "name": "10% ",
+      "prize": "10% скидка",
+      "image": "/uploads/image-1771344587090-721748627.png",
+      "rarity": "uncommon",
+      "weight": 1,
+      "isActive": true
+    },
+    {
+      "id": 5,
+      "name": "Gucci Card Holder",
+      "prize": "Gucci Card Holder",
+      "image": "/uploads/image-1771252752277-844697469.png",
+      "rarity": "epic",
+      "weight": 1,
+      "isActive": true
+    },
+    {
+      "id": 6,
+      "name": "NB X StoneIslnad",
+      "prize": "New Balance 574 x StoneIsland",
+      "image": "/uploads/image-1771253123051-43384986.png",
+      "rarity": "legendary",
+      "weight": 1,
+      "isActive": true
+    }
+  ],
+  "lastSlotId": 6
+}

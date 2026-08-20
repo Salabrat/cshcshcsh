@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Mobile Menu</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Force mobile view for testing */
+        .mobile-menu-btn {
+            display: flex !important;
+        }
+        .main-nav {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-wrapper">
+            <!-- Logo -->
+            <div class="logo">
+                <a href="index.html">
+                    <svg width="60" height="40" viewBox="0 0 60 40" fill="none">
+                        <text x="0" y="20" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="currentColor">C.P.</text>
+                        <text x="0" y="32" font-family="Arial, sans-serif" font-size="8" font-weight="normal" fill="currentColor">COMPANY</text>
+                    </svg>
+                </a>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="main-nav" id="mainNav">
+                <ul class="nav-list">
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">SHOP</a>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Header Actions -->
+            <div class="header-actions">
+                <button class="header-icon mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-menu-overlay" id="mobileMenuOverlay"></div>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <div class="mobile-menu-header">
+            <div class="mobile-menu-logo">
+                <svg width="60" height="40" viewBox="0 0 60 40" fill="none">
+                    <text x="0" y="20" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="currentColor">C.P.</text>
+                    <text x="0" y="32" font-family="Arial, sans-serif" font-size="8" font-weight="normal" fill="currentColor">COMPANY</text>
+                </svg>
+            </div>
+            <button class="mobile-menu-close" id="mobileMenuClose">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <nav class="mobile-menu-nav">
+            <ul class="mobile-menu-list">
+                <li class="mobile-menu-item">
+                    <a href="#" class="mobile-menu-link">TEST MENU ITEM</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+
+    <main style="padding: 50px; text-align: center;">
+        <h1>Test Mobile Menu</h1>
+        <p>Click the hamburger menu button to test mobile menu functionality.</p>
+        <p>Open browser console to see debug messages.</p>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>

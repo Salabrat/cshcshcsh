@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Menu Update</title>
+</head>
+<body>
+    <h1>Test Menu Update</h1>
+    <button onclick="testMenuUpdate()">Force Menu Update</button>
+    <button onclick="checkCategories()">Check Categories</button>
+    <div id="output"></div>
+
+    <script>
+        async function checkCategories() {
+            try {
+                const response = await fetch('/api/categories');
+                const categories = await response.json();
+                document.getElementById('output').innerHTML = '<pre>' + JSON.stringify(categories, null, 2) + '</pre>';
+            } catch (error) {
+                document.getElementById('output').innerHTML = 'Error: ' + error.message;
+            }
+        }
+
+        function testMenuUpdate() {
+            // Dispatch the event that should trigger menu update
+            document.dispatchEvent(new CustomEvent('categoriesUpdated'));
+            document.getElementById('output').innerHTML = 'Event dispatched. Check the main page.';
+            
+            // Also try to call the function directly if it exists
+            if (window.refreshCategoryMenus) {
+                window.refreshCategoryMenus();
+                document.getElementById('output').innerHTML += '<br>Also called refreshCategoryMenus()';
+            }
+        }
+    </script>
+</body>
+</html>

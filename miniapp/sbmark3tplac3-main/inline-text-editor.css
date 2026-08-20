@@ -1,0 +1,312 @@
+/* Inline Text Editor Styles */
+
+/* Admin mode indicator */
+.admin-edit-mode {
+    position: relative;
+}
+
+/* Editable wrapper */
+.editable-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+/* Edit button */
+.inline-edit-btn {
+    position: absolute;
+    top: -10px;
+    right: -30px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.editable-wrapper:hover .inline-edit-btn,
+.inline-edit-btn:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.inline-edit-btn:hover {
+    background: #000;
+    border-color: #fff;
+}
+
+/* Dark theme adjustments */
+body.dark-theme .inline-edit-btn {
+    background: rgba(255, 255, 255, 0.9);
+    color: black;
+    border-color: rgba(0, 0, 0, 0.2);
+}
+
+body.dark-theme .inline-edit-btn:hover {
+    background: #fff;
+    border-color: #000;
+}
+
+/* Editing state */
+.inline-editing {
+    outline: 2px dashed #007bff;
+    outline-offset: 4px;
+    background: rgba(0, 123, 255, 0.05);
+    padding: 8px;
+    border-radius: 4px;
+    min-width: 100px;
+    min-height: 1.5em;
+    cursor: text;
+    position: relative;
+}
+
+body.dark-theme .inline-editing {
+    background: rgba(0, 123, 255, 0.1);
+    outline-color: #4dabff;
+}
+
+/* Edit controls */
+.inline-edit-controls {
+    position: absolute;
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    z-index: 1001;
+}
+
+.inline-edit-save,
+.inline-edit-cancel {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+.inline-edit-save {
+    background: #28a745;
+    color: white;
+}
+
+.inline-edit-save:hover {
+    background: #218838;
+    transform: scale(1.1);
+}
+
+.inline-edit-cancel {
+    background: #dc3545;
+    color: white;
+}
+
+.inline-edit-cancel:hover {
+    background: #c82333;
+    transform: scale(1.1);
+}
+
+/* Admin mode toggle button - DISABLED
+.admin-mode-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    padding: 12px 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 10000;
+    transition: all 0.3s;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
+    font-weight: 500;
+    display: none !important;
+} */
+
+/* Disabled admin-mode-toggle styles
+.admin-mode-toggle:hover {
+    background: #000;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.admin-mode-toggle.active {
+    background: #007bff;
+    border-color: #007bff;
+}
+
+.admin-mode-toggle.active:hover {
+    background: #0056b3;
+}
+
+body.dark-theme .admin-mode-toggle {
+    background: rgba(255, 255, 255, 0.9);
+    color: black;
+    border-color: rgba(0, 0, 0, 0.2);
+}
+
+body.dark-theme .admin-mode-toggle:hover {
+    background: #fff;
+}
+
+body.dark-theme .admin-mode-toggle.active {
+    background: #4dabff;
+    color: white;
+    border-color: #4dabff;
+}
+*/
+
+/* Notifications */
+.inline-edit-notification {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 10000;
+    transform: translateX(400px);
+    transition: transform 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.inline-edit-notification.show {
+    transform: translateX(0);
+}
+
+.inline-edit-notification.success {
+    background: #28a745;
+    color: white;
+}
+
+.inline-edit-notification.error {
+    background: #dc3545;
+    color: white;
+}
+
+.inline-edit-notification.info {
+    background: #17a2b8;
+    color: white;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .inline-edit-btn {
+        top: -8px;
+        right: -25px;
+        width: 24px;
+        height: 24px;
+    }
+
+    .inline-edit-controls {
+        position: relative;
+        margin-top: 12px;
+        justify-content: flex-start;
+    }
+
+    /* Disabled admin-mode-toggle mobile styles
+    .admin-mode-toggle {
+        bottom: 70px;
+        right: 10px;
+        padding: 10px 16px;
+        font-size: 12px;
+    }
+
+    .admin-mode-toggle span {
+        display: none;
+    }
+    */
+
+    .inline-edit-notification {
+        right: 10px;
+        left: 10px;
+        transform: translateY(-100px);
+    }
+
+    .inline-edit-notification.show {
+        transform: translateY(0);
+    }
+}
+
+/* Special styles for different element types */
+.hero-title.inline-editing,
+.campaign-title.inline-editing {
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+    text-transform: inherit;
+}
+
+.hero-subtitle.inline-editing,
+.campaign-description.inline-editing {
+    font-size: inherit;
+    line-height: inherit;
+}
+
+/* Prevent layout shift during editing */
+.inline-editing br {
+    display: inline;
+}
+
+/* Admin mode visual indicators */
+.admin-edit-mode .editable-wrapper {
+    position: relative;
+}
+
+.admin-edit-mode .editable-wrapper::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border: 1px dashed rgba(0, 123, 255, 0.3);
+    border-radius: 4px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.admin-edit-mode .editable-wrapper:hover::before {
+    opacity: 1;
+}
+
+/* Loading state */
+.inline-editing.saving {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.inline-editing.saving::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #007bff;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

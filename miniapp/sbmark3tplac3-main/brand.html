@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brand Collection - C.P. Company</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="product-modal.css">
+    <link rel="stylesheet" href="category-header-switch.css">
+</head>
+<body>
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <div class="top-bar-wrapper">
+            <div class="top-bar-left">
+                <!-- Empty for now, can add content later -->
+            </div>
+            <div class="top-bar-right">
+                <a href="login.html" class="top-bar-link">Login</a>
+                <span class="top-bar-separator">/</span>
+                <a href="register.html" class="top-bar-link">Register</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="header category-header">
+        <div class="header-wrapper">
+            <!-- Logo -->
+            <div class="logo">
+                <a href="index.html">
+                    <!-- Logo will be loaded dynamically via JavaScript -->
+                </a>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="main-nav" id="mainNav">
+                <ul class="nav-list">
+                    <li class="nav-item has-dropdown">
+                        <a href="#" class="nav-link" id="shopLink">SHOP</a>
+                        <!-- Mega Menu with Tabs -->
+                        <div class="mega-menu" id="megaMenu">
+                            <div class="mega-menu-content">
+                                <!-- Tabs -->
+                                <div class="mega-menu-tabs">
+                                    <button class="mega-menu-tab active" data-tab="main-collection">MAIN COLLECTION</button>
+                                    <button class="mega-menu-tab" data-tab="brand-collection">BRAND</button>
+                                </div>
+                                
+                                <!-- Main Collection Tab Content -->
+                                <div class="mega-menu-tab-content active" id="main-collection">
+                                    <div class="mega-menu-single-column">
+                                        <div class="mega-menu-section">
+                                            <ul class="mega-menu-list">
+                                                <li><a href="shop-all.html" class="mega-menu-link"><span class="arrow">></span> SHOP ALL</a></li>
+                                                <li><a href="category-jackets.html" class="mega-menu-link"><span class="arrow">></span> КУРТКИ</a></li>
+                                                <li><a href="category-shoes.html" class="mega-menu-link"><span class="arrow">></span> ОБУВЬ</a></li>
+                                                <li><a href="category-coats.html" class="mega-menu-link"><span class="arrow">></span> ПАЛЬТО</a></li>
+                                                <li><a href="category-sweaters.html" class="mega-menu-link"><span class="arrow">></span> КОФТЫ</a></li>
+                                                <li><a href="category-glasses.html" class="mega-menu-link"><span class="arrow">></span> ОЧКИ</a></li>
+                                                <li><a href="category-pants.html" class="mega-menu-link"><span class="arrow">></span> ШТАНЫ</a></li>
+                                                <li><a href="category-hats.html" class="mega-menu-link"><span class="arrow">></span> ГОЛОВНОЙ УБОР</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Brand Tab Content -->
+                                <div class="mega-menu-tab-content" id="brand-collection">
+                                    <div class="mega-menu-single-column">
+                                        <div class="mega-menu-section">
+                                            <ul class="mega-menu-list" id="brandMenuList">
+                                                <!-- Brands will be loaded dynamically -->
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Header Actions -->
+            <div class="header-actions">
+                <button class="header-icon search-btn" aria-label="Search">SEARCH</button>
+                <button class="header-icon mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Search Overlay -->
+    <div class="search-overlay" id="searchOverlay">
+        <div class="search-content">
+            <button class="search-close" id="searchClose">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <form class="search-form">
+                <input type="search" placeholder="Search..." class="search-input">
+                <button type="submit" class="search-submit">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="shop-main">
+        <div class="container">
+            <!-- Admin Controls -->
+            <div class="admin-controls" id="adminControls">
+                <button class="admin-btn" onclick="openAddProductModal('brand')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Добавить товар
+                </button>
+            </div>
+
+            <script>
+                // Immediate check for admin login status
+                (function() {
+                    console.log('Immediate admin check in brand.html');
+                    const adminLoggedIn = localStorage.getItem('adminLoggedIn');
+                    console.log('Immediate check - adminLoggedIn:', adminLoggedIn);
+                    if (adminLoggedIn === 'true') {
+                        console.log('Immediate check - Admin is logged in, showing controls');
+                        const adminControls = document.getElementById('adminControls');
+                        if (adminControls) {
+                            adminControls.classList.add('visible');
+                        }
+                    }
+                })();
+            </script>
+
+            <!-- Shop Header -->
+            <div class="shop-header">
+                <!-- Breadcrumb -->
+                <nav class="breadcrumb">
+                    <a href="index.html">HOME</a> / <a href="#" class="breadcrumb-brand-link">BRAND</a> / <span id="breadcrumbBrand">BRAND NAME</span>
+                </nav>
+                <h1 class="shop-title" id="brandTitle">LOADING...</h1>
+                <p class="shop-description" id="brandDescription">Loading brand collection...</p>
+            </div>
+
+            <!-- Filters and Controls -->
+            <div class="shop-controls">
+                <div class="shop-info">
+                    <span class="product-count" id="productCount" data-brand="">0 изделий</span>
+                </div>
+                <div class="shop-actions">
+                    <div class="filter-dropdown">
+                        <button class="filters-btn" id="filterBtn">
+                            FILTERS
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </button>
+                        <div class="filter-menu" id="filterMenu">
+                            <div class="filter-option" data-sort="price-asc">
+                                <span>Цена: по возрастанию</span>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="18 15 12 9 6 15"></polyline>
+                                </svg>
+                            </div>
+                            <div class="filter-option" data-sort="price-desc">
+                                <span>Цена: по убыванию</span>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </div>
+                            <div class="filter-option" data-sort="name-asc">
+                                <span>Название: А-Я</span>
+                            </div>
+                            <div class="filter-option" data-sort="name-desc">
+                                <span>Название: Я-А</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="view-controls">
+                        <button class="view-btn" data-view="grid-2">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="7" height="7"></rect>
+                                <rect x="14" y="3" width="7" height="7"></rect>
+                                <rect x="3" y="14" width="7" height="7"></rect>
+                                <rect x="14" y="14" width="7" height="7"></rect>
+                            </svg>
+                        </button>
+                        <button class="view-btn active" data-view="grid-4">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="4" height="4"></rect>
+                                <rect x="10" y="3" width="4" height="4"></rect>
+                                <rect x="17" y="3" width="4" height="4"></rect>
+                                <rect x="3" y="10" width="4" height="4"></rect>
+                                <rect x="10" y="10" width="4" height="4"></rect>
+                                <rect x="17" y="10" width="4" height="4"></rect>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Products Grid -->
+            <div class="products-grid grid-4" id="productsGrid" data-brand="">
+                <div class="empty-catalog">
+                    <div class="empty-icon">
+                        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                            <circle cx="9" cy="21" r="1"></circle>
+                            <circle cx="20" cy="21" r="1"></circle>
+                            <path d="m1 1 4 4 2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                        </svg>
+                    </div>
+                    <h3>В этом бренде пока нет товаров</h3>
+                    <p>Товары будут добавлены администратором</p>
+                </div>
+            </div>
+
+            <!-- Load More Button -->
+            <div class="load-more-section">
+                <button class="btn btn-load-more">ПОКАЗАТЬ ЕЩЕ</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section social-section">
+                    <div class="social-links">
+                        <a href="#" id="social-telegram" aria-label="Telegram" target="_blank" rel="noopener noreferrer">
+                            <span>telegram</span>
+                        </a>
+                        <a href="#" id="social-vk" aria-label="VK" target="_blank" rel="noopener noreferrer">
+                            <span>vk</span>
+                        </a>
+                        <a href="#" id="social-instagram" aria-label="Instagram" target="_blank" rel="noopener noreferrer">
+                            <span>insta</span>
+                        </a>
+                </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 C.P. Company. All Rights Reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu-overlay" id="mobileMenuOverlay"></div>
+    <div class="mobile-menu" id="mobileMenu">
+        <div class="mobile-menu-header">
+            <div class="mobile-menu-logo">
+                <svg width="60" height="40" viewBox="0 0 60 40" fill="none">
+                    <text x="0" y="20" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="currentColor">C.P.</text>
+                    <text x="0" y="32" font-family="Arial, sans-serif" font-size="8" font-weight="normal" fill="currentColor">COMPANY</text>
+                </svg>
+            </div>
+            <button class="mobile-menu-close" id="mobileMenuClose">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <nav class="mobile-menu-nav">
+            <ul class="mobile-menu-list">
+                <li class="mobile-menu-item has-dropdown">
+                    <a href="#" class="mobile-menu-link shop-menu-toggle" id="shopMenuToggle">
+                        SHOP
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="dropdown-arrow">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </a>
+                    <ul class="mobile-dropdown-menu" id="shopDropdown">
+                        <li class="mobile-dropdown-item">
+                            <a href="shop-all.html" class="mobile-dropdown-link">SHOP ALL</a>
+                </li>
+                        <li class="mobile-dropdown-item expandable">
+                            <a href="#" class="mobile-dropdown-link focus-toggle">
+                                CATEGORIES
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="focus-arrow">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </a>
+                            <ul class="mobile-dropdown-nested" id="mobileCategoriesMenu">
+                                <!-- Categories will be loaded dynamically -->
+                            </ul>
+                </li>
+                    </ul>
+                </li>
+                <li class="mobile-menu-item has-dropdown">
+                    <a href="#" class="mobile-menu-link brand-menu-toggle" id="brandMenuToggle">
+                        BRAND
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="dropdown-arrow">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </a>
+                    <ul class="mobile-dropdown-menu" id="mobileBrandsList">
+                        <!-- Brands will be loaded dynamically -->
+                    </ul>
+                </li>
+            </ul>
+        </nav>
+    </div>
+
+    <!-- Product Modal -->
+    <div class="product-modal" id="productModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Добавить товар</h2>
+                <button class="modal-close" onclick="closeProductModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="productForm">
+                    <div class="form-group">
+                        <label class="form-label">Название товара</label>
+                        <input type="text" class="form-input" id="productName" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Описание</label>
+                        <textarea class="form-textarea" id="productDescription" required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Размеры</label>
+                        <div class="size-selector">
+                            <div class="size-option" data-size="XS">XS</div>
+                            <div class="size-option" data-size="S">S</div>
+                            <div class="size-option" data-size="M">M</div>
+                            <div class="size-option" data-size="L">L</div>
+                            <div class="size-option" data-size="XL">XL</div>
+                            <div class="size-option" data-size="XXL">XXL</div>
+                            <div class="size-option" data-size="XXXL">XXXL</div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Цена (₽)</label>
+                        <input type="number" class="form-input" id="productPrice" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="productTrending" style="margin-right: 8px;">
+                            Trending Now (показывать на главной странице)
+                        </label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Фотографии (до 10 шт.)</label>
+                        <div class="file-upload" onclick="document.getElementById('productImages').click()">
+                            <input type="file" id="productImages" multiple accept="image/png,image/jpeg,image/jpg" onchange="handleImageUpload(event)">
+                            <div class="upload-text">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                    <polyline points="21,15 16,10 5,21"></polyline>
+                                </svg>
+                                <p>Нажмите для выбора изображений</p>
+                                <small>PNG, JPEG до 5MB каждое</small>
+                            </div>
+                        </div>
+                        <div class="image-preview" id="imagePreview"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeProductModal()">Отмена</button>
+                <button type="button" class="btn-primary" onclick="saveProduct()">Сохранить товар</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script src="product-counter.js"></script>
+    <script src="database-api.js"></script>
+    <script src="product-manager-api.js"></script>
+    <script src="product-loader-api.js"></script>
+    <script src="product-modal.js"></script>
+    <!-- Removed demo-data.js to prevent demo data loading -->
+    
+    <!-- Inline mobile menu script as backup -->
+    <script>
+        // Debug information
+        console.log('Page loaded, checking localStorage');
+        console.log('adminLoggedIn in localStorage:', localStorage.getItem('adminLoggedIn'));
+        
+        // Backup mobile menu functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOMContentLoaded fired in brand.html');
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const mobileMenu = document.getElementById('mobileMenu');
+            const mobileMenuClose = document.getElementById('mobileMenuClose');
+            const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+            
+            console.log('Backup script - Elements found:', {
+                btn: !!mobileMenuBtn,
+                menu: !!mobileMenu,
+                close: !!mobileMenuClose,
+                overlay: !!mobileMenuOverlay
+            });
+            
+            if (mobileMenuBtn && mobileMenu && mobileMenuOverlay) {
+                mobileMenuBtn.onclick = function(e) {
+                    e.preventDefault();
+                    console.log('Backup: Opening mobile menu');
+                    mobileMenu.classList.add('active');
+                    mobileMenuOverlay.classList.add('active');
+                    document.body.style.overflow = 'hidden';
+                };
+                
+                if (mobileMenuClose) {
+                    mobileMenuClose.onclick = function(e) {
+                        e.preventDefault();
+                        console.log('Backup: Closing mobile menu');
+                        mobileMenu.classList.remove('active');
+                        mobileMenuOverlay.classList.remove('active');
+                        document.body.style.overflow = '';
+                    };
+                }
+                
+                mobileMenuOverlay.onclick = function() {
+                    console.log('Backup: Closing via overlay');
+                    mobileMenu.classList.remove('active');
+                    mobileMenuOverlay.classList.remove('active');
+                    document.body.style.overflow = '';
+                };
+            }
+        });
+    </script>
+    <script src="brand-navigation.js"></script>
+    <script src="dynamic-categories-menu.js"></script>
+    <script src="simple-sticky-swap.js"></script>
+    <script src="category-header-switch-v2.js"></script>
+    <!-- Modern sticky navigation with IntersectionObserver -->
+    <!-- <script src="category-sticky-navigation.js"></script> -->
+    <!-- Breadcrumb SHOP menu integration -->
+    <script src="breadcrumb-shop-menu.js"></script>
+    <!-- Mega menu tabs functionality -->
+    <script src="mega-menu-tabs.js"></script>
+    <!-- Search functionality with autocomplete -->
+    <script src="search.js"></script>
+    <!-- Load header logo -->
+    <script src="load-header-logo.js"></script>
+    <!-- Load social links -->
+    <script src="load-social-links.js"></script>
+    <!-- Load custom menu labels -->
+    <script src="load-menu-labels.js"></script>
+    
+    <!-- Brand page loader - runs after all other scripts -->
+    <script>
+        // Mark as brand page to prevent other loaders from running
+        window.isBrandPage = true;
+        
+        // Brand page loader - similar structure to ProductLoaderAPI
+        class BrandPageLoader {
+            constructor() {
+                this.productsGrid = document.getElementById('productsGrid');
+                this.productCounter = document.querySelector('.product-count');
+                this.brandId = this.getBrandIdFromURL();
+                this.allProducts = [];
+                this.displayedCount = 0;
+                this.productsPerPage = 20;
+                
+                if (!this.brandId) {
+                    window.location.href = '/shop-all.html';
+                    return;
+                }
+                
+                // Set brand ID to data attribute
+                if (this.productsGrid) {
+                    this.productsGrid.setAttribute('data-brand', this.brandId);
+                }
+                
+                this.init();
+            }
+            
+            getBrandIdFromURL() {
+                const urlParams = new URLSearchParams(window.location.search);
+                return urlParams.get('id');
+            }
+            
+            async init() {
+                await this.loadBrandInfo();
+                await this.loadProducts();
+                this.setupLoadMoreButton();
+            }
+            
+            async loadBrandInfo() {
+                try {
+                    const brandsResponse = await fetch('/api/brands');
+                    if (brandsResponse.ok) {
+                        const brands = await brandsResponse.json();
+                        const brand = brands.find(b => b.id == this.brandId);
+                        
+                        if (brand) {
+                            const brandTitle = document.getElementById('brandTitle');
+                            const brandDesc = document.getElementById('brandDescription');
+                            const breadcrumbBrand = document.getElementById('breadcrumbBrand');
+                            
+                            if (brandTitle) {
+                                brandTitle.textContent = brand.name.toUpperCase();
+                            }
+                            if (brandDesc) {
+                                brandDesc.textContent = brand.description || `Коллекция товаров бренда ${brand.name}`;
+                            }
+                            if (breadcrumbBrand) {
+                                breadcrumbBrand.textContent = brand.name.toUpperCase();
+                            }
+                            document.title = `${brand.name} - C.P. Company`;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error loading brand info:', error);
+                }
+            }
+            
+            async loadProducts() {
+                if (!this.productsGrid) {
+                    console.log('Products grid not found');
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`/api/products/brand/${this.brandId}`);
+                    if (response.ok) {
+                        const products = await response.json();
+                        console.log(`Found ${products.length} products for brand ${this.brandId}`);
+                        
+                        this.allProducts = products;
+                        this.displayedCount = 0;
+                        
+                        // Clear grid
+                        this.productsGrid.innerHTML = '';
+                        
+                        if (products.length === 0) {
+                            await this.showEmptyState();
+                            this.updateLoadMoreButton();
+                        } else {
+                            // Display first page
+                            this.displayNextPage();
+                            this.updateLoadMoreButton(this.displayedCount >= this.allProducts.length);
+                        }
+                        
+                        // Update product counter
+                        if (this.productCounter) {
+                            this.productCounter.textContent = `${products.length} изделий`;
+                            this.productCounter.setAttribute('data-brand', this.brandId);
+                        }
+                    } else {
+                        throw new Error(`API error: ${response.status}`);
+                    }
+                } catch (error) {
+                    console.error('Error loading brand products:', error);
+                    this.productsGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 60px;">Ошибка загрузки товаров</div>';
+                }
+            }
+            
+            async showEmptyState() {
+                this.productsGrid.innerHTML = `
+                    <div class="empty-catalog">
+                        <div class="empty-icon">
+                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                                <circle cx="9" cy="21" r="1"></circle>
+                                <circle cx="20" cy="21" r="1"></circle>
+                                <path d="m1 1 4 4 2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                            </svg>
+                        </div>
+                        <h3>В этом бренде пока нет товаров</h3>
+                        <p>Товары будут добавлены администратором</p>
+                    </div>
+                `;
+            }
+            
+            displayNextPage() {
+                const remainingProducts = this.allProducts.slice(this.displayedCount);
+                const productsToShow = remainingProducts.slice(0, this.productsPerPage);
+                
+                if (productsToShow.length === 0) {
+                    return;
+                }
+                
+                const placeholder = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDMwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xNTAgMTIwQzE2NS0xNSAxODUgMTM1IDE1MCAyMDBDMTE1IDEzNSAxMzUgMTE1IDE1MCAxMjBaIiBmaWxsPSIjRTVFN0VCIi8+Cjx0ZXh0IHg9IjE1MCIgeT0iMjQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOUI5QkEzIiBmb250LXNpemU9IjE0Ij5ObyBpbWFnZTwvdGV4dD4KPC9zdmc+';
+                
+                productsToShow.forEach(product => {
+                    const card = document.createElement('div');
+                    card.className = 'product-card';
+                    card.setAttribute('data-product-id', product.id);
+                    
+                    // Get images
+                    let firstImage = placeholder;
+                    let secondImage = placeholder;
+                    
+                    if (product.images && product.images.length > 0) {
+                        if (typeof product.images[0] === 'string') {
+                            firstImage = product.images[0];
+                        } else if (product.images[0].url) {
+                            firstImage = product.images[0].url;
+                        } else if (product.images[0].data) {
+                            firstImage = product.images[0].data;
+                        }
+                        
+                        if (product.images.length > 1) {
+                            if (typeof product.images[1] === 'string') {
+                                secondImage = product.images[1];
+                            } else if (product.images[1].url) {
+                                secondImage = product.images[1].url;
+                            } else if (product.images[1].data) {
+                                secondImage = product.images[1].data;
+                            }
+                        } else {
+                            secondImage = firstImage;
+                        }
+                    }
+                    
+                    // Format price
+                    const hasDiscount = product.oldPrice && product.newPrice;
+                    const hasPrice = typeof product.price === 'number' && !isNaN(product.price);
+                    const formattedPrice = hasPrice
+                        ? new Intl.NumberFormat('ru-RU').format(product.price)
+                        : 'Цена по запросу';
+                    const formattedOldPrice = hasDiscount ? new Intl.NumberFormat('ru-RU').format(product.oldPrice) : null;
+                    const formattedNewPrice = hasDiscount ? new Intl.NumberFormat('ru-RU').format(product.newPrice) : null;
+                    const currentPriceValue = hasDiscount ? product.newPrice : (hasPrice ? product.price : 0);
+
+                    card.innerHTML = `
+                        <div class="product-image">
+                            <img class="product-image-primary" src="${firstImage}" alt="${product.name || ''}" loading="lazy" onerror="this.src='${placeholder}'">
+                            ${secondImage !== firstImage ? `<img class="product-image-hover" src="${secondImage}" alt="${product.name || ''}" loading="lazy" onerror="this.src='${placeholder}'">` : ''}
+                        </div>
+                        <h3 class="product-name">${product.name || 'Без названия'}</h3>
+                        <span class="product-price ${hasDiscount ? 'has-discount' : ''}"
+                              data-current-price="${currentPriceValue || 0}"
+                              data-old-price="${hasDiscount ? product.oldPrice || '' : ''}">
+                            ${hasDiscount
+                                ? `<span class="price-old">${formattedOldPrice} ₽</span><span class="price-new">${formattedNewPrice} ₽</span>`
+                                : (hasPrice ? `${formattedPrice} ₽` : formattedPrice)}
+                        </span>
+                    `;
+                    
+                    // Add click handler
+                    card.addEventListener('click', () => {
+                        if (window.productModal && window.productModal.open) {
+                            window.productModal.open(product);
+                        } else {
+                            window.location.href = `/product.html?id=${product.id}`;
+                        }
+                    });
+                    
+                    this.productsGrid.appendChild(card);
+                });
+                
+                this.displayedCount += productsToShow.length;
+            }
+            
+            setupLoadMoreButton() {
+                const loadMoreBtn = document.querySelector('.btn-load-more');
+                if (loadMoreBtn) {
+                    const newBtn = loadMoreBtn.cloneNode(true);
+                    loadMoreBtn.parentNode.replaceChild(newBtn, loadMoreBtn);
+                    
+                    newBtn.addEventListener('click', () => {
+                        this.loadMore();
+                    });
+                }
+            }
+            
+            loadMore() {
+                const loadMoreBtn = document.querySelector('.btn-load-more');
+                if (!loadMoreBtn || loadMoreBtn.disabled) return;
+                
+                loadMoreBtn.textContent = 'ЗАГРУЗКА...';
+                loadMoreBtn.disabled = true;
+                
+                setTimeout(() => {
+                    this.displayNextPage();
+                    this.updateLoadMoreButton(this.displayedCount >= this.allProducts.length);
+                    if (this.displayedCount < this.allProducts.length) {
+                        loadMoreBtn.disabled = false;
+                    }
+                }, 300);
+            }
+            
+            updateLoadMoreButton(allLoaded = false) {
+                const loadMoreBtn = document.querySelector('.btn-load-more');
+                const loadMoreSection = document.querySelector('.load-more-section');
+                
+                if (!loadMoreBtn || !loadMoreSection) return;
+                
+                if (this.allProducts.length <= this.productsPerPage) {
+                    loadMoreSection.style.display = 'none';
+                    return;
+                }
+                
+                if (allLoaded || this.displayedCount >= this.allProducts.length) {
+                    loadMoreBtn.textContent = 'ПОКА ЧТО ЭТО ВСЕ ТОВАРЫ';
+                    loadMoreBtn.disabled = true;
+                    loadMoreBtn.style.opacity = '0.6';
+                    loadMoreBtn.style.cursor = 'not-allowed';
+                    loadMoreSection.style.display = 'block';
+                } else {
+                    loadMoreBtn.textContent = 'ПОКАЗАТЬ ЕЩЕ';
+                    loadMoreBtn.disabled = false;
+                    loadMoreBtn.style.opacity = '1';
+                    loadMoreBtn.style.cursor = 'pointer';
+                    loadMoreSection.style.display = 'block';
+                }
+            }
+        }
+        
+        // Initialize brand page loader
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                setTimeout(() => {
+                    new BrandPageLoader();
+                }, 200);
+            });
+        } else {
+            setTimeout(() => {
+                new BrandPageLoader();
+            }, 200);
+        }
+    </script>
+    <!-- Breadcrumb SHOP menu integration -->
+    <script src="breadcrumb-shop-menu.js"></script>
+    <!-- Mega menu tabs functionality -->
+    <script src="mega-menu-tabs.js"></script>
+    <!-- Load social links -->
+    <script src="load-social-links.js"></script>
+    
+    <!-- Force shop menu initialization on brand page -->
+    <script>
+        // Ensure shop menu works on brand page
+        (function() {
+            let shopMenuHandlerAdded = false;
+            
+            function forceInitShopMenu() {
+                const shopLink = document.getElementById('shopLink');
+                const megaMenu = document.getElementById('megaMenu');
+                const hasDropdown = document.querySelector('.has-dropdown');
+                
+                if (shopLink && megaMenu && hasDropdown) {
+                    console.log('Force initializing shop menu on brand page...');
+                    
+                    // Убеждаемся, что основной обработчик работает
+                    if (typeof initMegaMenu === 'function') {
+                        // Сбрасываем флаг инициализации, чтобы initMegaMenu мог добавить обработчик
+                        delete shopLink.dataset.megaMenuInitialized;
+                        // Вызываем initMegaMenu с небольшой задержкой, чтобы убедиться, что все элементы готовы
+                        setTimeout(() => {
+                            initMegaMenu();
+                        }, 50);
+                    }
+                    
+                    // Добавляем обработчик закрытия brand menu в capture phase
+                    // Это нужно, чтобы закрыть brand menu до того, как основной обработчик откроет shop menu
+                    // Но НЕ блокируем событие, чтобы основной обработчик мог работать
+                    if (!shopMenuHandlerAdded) {
+                        shopLink.addEventListener('click', function(e) {
+                            console.log('Brand page: Closing brand menu before opening shop menu');
+                            
+                            // Закрываем brand menu если открыт
+                            const brandMegaMenu = document.getElementById('brandMegaMenu');
+                            if (brandMegaMenu && (brandMegaMenu.style.visibility === 'visible' || brandMegaMenu.style.opacity === '1')) {
+                                brandMegaMenu.style.opacity = '0';
+                                brandMegaMenu.style.visibility = 'hidden';
+                                brandMegaMenu.style.pointerEvents = 'none';
+                                
+                                const brandDropdown = document.getElementById('brandLink')?.closest('.has-dropdown');
+                                if (brandDropdown) {
+                                    brandDropdown.classList.remove('active');
+                                }
+                            }
+                            // НЕ вызываем stopPropagation или stopImmediatePropagation, чтобы основной обработчик работал
+                        }, true); // Capture phase - выполнится ПЕРЕД основным обработчиком
+                        shopMenuHandlerAdded = true;
+                    }
+                    
+                    // Также добавляем прямой обработчик, если основной не работает
+                    // Это резервный вариант для случаев, когда initMegaMenu не сработал
+                    if (!shopLink.dataset.directHandlerAdded) {
+                        shopLink.addEventListener('click', function(e) {
+                            // Проверяем, был ли обработан клик основным обработчиком
+                            // Если меню не открылось через 100ms, открываем его вручную
+                            setTimeout(() => {
+                                const isMenuVisible = megaMenu.style.visibility === 'visible' || 
+                                                     megaMenu.style.opacity === '1' ||
+                                                     window.getComputedStyle(megaMenu).visibility === 'visible';
+                                
+                                if (!isMenuVisible) {
+                                    console.log('Main handler did not work, opening menu manually');
+                                    
+                                    // Закрываем brand menu если открыт
+                                    const brandMegaMenu = document.getElementById('brandMegaMenu');
+                                    if (brandMegaMenu) {
+                                        brandMegaMenu.style.opacity = '0';
+                                        brandMegaMenu.style.visibility = 'hidden';
+                                        brandMegaMenu.style.pointerEvents = 'none';
+                                        
+                                        const brandDropdown = document.getElementById('brandLink')?.closest('.has-dropdown');
+                                        if (brandDropdown) {
+                                            brandDropdown.classList.remove('active');
+                                        }
+                                    }
+                                    
+                                    // Открываем shop menu
+                                    const dropdownRect = hasDropdown.getBoundingClientRect();
+                                    const menuWidth = megaMenu.offsetWidth;
+                                    const viewportWidth = window.innerWidth;
+                                    const menuLeft = dropdownRect.left + (dropdownRect.width / 2) - (menuWidth / 2);
+                                    
+                                    megaMenu.classList.remove('align-left', 'align-right');
+                                    if (menuLeft < 20) {
+                                        megaMenu.classList.add('align-left');
+                                    } else if (menuLeft + menuWidth > viewportWidth - 20) {
+                                        megaMenu.classList.add('align-right');
+                                    }
+                                    
+                                    megaMenu.style.cssText = `
+                                        opacity: 1 !important;
+                                        visibility: visible !important;
+                                        display: block !important;
+                                        position: absolute !important;
+                                        z-index: 2000 !important;
+                                        pointer-events: auto !important;
+                                        height: auto !important;
+                                        max-height: calc(100vh - 120px) !important;
+                                        min-height: auto !important;
+                                        overflow: visible !important;
+                                    `;
+                                    
+                                    // Force content to be visible
+                                    const megaMenuContent = megaMenu.querySelector('.mega-menu-content');
+                                    if (megaMenuContent) {
+                                        megaMenuContent.style.cssText = `
+                                            display: block !important;
+                                            opacity: 1 !important;
+                                            visibility: visible !important;
+                                            height: auto !important;
+                                            max-height: none !important;
+                                            overflow: visible !important;
+                                        `;
+                                    }
+                                    
+                                    // Force tabs to be visible
+                                    const megaMenuTabs = megaMenu.querySelector('.mega-menu-tabs');
+                                    if (megaMenuTabs) {
+                                        megaMenuTabs.style.cssText = `
+                                            display: flex !important;
+                                            opacity: 1 !important;
+                                            visibility: visible !important;
+                                        `;
+                                    }
+                                    
+                                    // Force active tab content to be visible
+                                    const activeTabContent = megaMenu.querySelector('.mega-menu-tab-content.active');
+                                    if (activeTabContent) {
+                                        activeTabContent.style.cssText = `
+                                            display: block !important;
+                                            opacity: 1 !important;
+                                            visibility: visible !important;
+                                            height: auto !important;
+                                            max-height: none !important;
+                                            overflow: visible !important;
+                                        `;
+                                    }
+                                    
+                                    // Hide inactive tab contents
+                                    const allTabContents = megaMenu.querySelectorAll('.mega-menu-tab-content');
+                                    allTabContents.forEach(content => {
+                                        if (!content.classList.contains('active')) {
+                                            content.style.cssText = `
+                                                display: none !important;
+                                                opacity: 0 !important;
+                                                visibility: hidden !important;
+                                            `;
+                                        }
+                                    });
+                                    
+                                    const header = document.querySelector('.header');
+                                    const topBar = document.querySelector('.top-bar');
+                                    if (header) header.classList.add('scrolled');
+                                    if (topBar) topBar.classList.add('scrolled');
+                                }
+                            }, 100);
+                        }, false); // Bubble phase - выполнится ПОСЛЕ основного обработчика
+                        shopLink.dataset.directHandlerAdded = 'true';
+                    }
+                    
+                    console.log('Shop menu initialized on brand page');
+                } else {
+                    console.log('Shop menu elements not found, retrying...', {
+                        hasShopLink: !!shopLink,
+                        hasMegaMenu: !!megaMenu,
+                        hasDropdown: !!hasDropdown
+                    });
+                    setTimeout(forceInitShopMenu, 200);
+                }
+            }
+            
+            // Try multiple times to ensure initialization
+            setTimeout(forceInitShopMenu, 300);
+            setTimeout(forceInitShopMenu, 800);
+            setTimeout(forceInitShopMenu, 1500);
+            setTimeout(forceInitShopMenu, 2500);
+        })();
+    </script>
+</body>
+</html>

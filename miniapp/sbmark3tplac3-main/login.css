@@ -1,0 +1,475 @@
+/* Reset & Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --primary-color: #000000;
+    --secondary-color: #ffffff;
+    --text-color: #000000;
+    --text-light: #666666;
+    --border-color: #e0e0e0;
+    --transition: all 0.3s ease;
+    --font-family: 'AKONY', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+body {
+    font-family: var(--font-family);
+    color: var(--text-color);
+    line-height: 1.4;
+    overflow-x: hidden;
+    background: var(--secondary-color);
+}
+
+/* Login Container */
+.login-container {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* Left side - Image */
+.login-image {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+}
+
+.login-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+}
+
+/* Right side - Form */
+.login-form-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    position: relative;
+    justify-content: center;
+    padding: 40px;
+    background: var(--secondary-color);
+}
+
+.login-form-wrapper {
+    width: 100%;
+    max-width: 480px;
+    position: relative;
+}
+
+/* Close button */
+.login-close-btn {
+    position: absolute;
+    top: -20px;
+    right: -20px;
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    z-index: 10;
+}
+
+.login-close-btn:hover {
+    transform: rotate(90deg);
+}
+
+.login-close-btn svg {
+    width: 24px;
+    height: 24px;
+    stroke: var(--text-color);
+}
+
+/* Title */
+.login-title {
+    font-size: 28px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    line-height: 1.2;
+    margin-bottom: 40px;
+    color: var(--primary-color);
+}
+
+/* Form Styles */
+.login-form {
+    margin-bottom: 40px;
+}
+
+.form-group {
+    margin-bottom: 24px;
+}
+
+.form-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--primary-color);
+    margin-bottom: 8px;
+}
+
+.required {
+    color: #ff0000;
+}
+
+.form-input {
+    width: 100%;
+    padding: 16px 20px;
+    font-size: 14px;
+    font-family: inherit;
+    border: 1px solid var(--border-color);
+    background: var(--secondary-color);
+    color: var(--text-color);
+    transition: var(--transition);
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.form-input::placeholder {
+    color: var(--text-light);
+    font-style: italic;
+}
+
+/* Password Input */
+.password-input-wrapper {
+    position: relative;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-light);
+    cursor: pointer;
+    padding: 4px;
+    transition: var(--transition);
+}
+
+.password-toggle:hover {
+    color: var(--primary-color);
+}
+
+/* Form Options */
+.form-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+}
+
+/* Checkbox */
+.checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+    color: var(--text-color);
+    cursor: pointer;
+}
+
+.checkbox-wrapper input[type="checkbox"] {
+    display: none;
+}
+
+.checkmark {
+    width: 16px;
+    height: 16px;
+    border: 1px solid var(--border-color);
+    margin-right: 8px;
+    position: relative;
+    transition: var(--transition);
+}
+
+.checkbox-wrapper input[type="checkbox"]:checked + .checkmark {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.checkbox-wrapper input[type="checkbox"]:checked + .checkmark::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 1px;
+    width: 6px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+/* Forgot Password */
+.forgot-password {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--primary-color);
+    text-decoration: underline;
+    transition: var(--transition);
+}
+
+.forgot-password:hover {
+    opacity: 0.7;
+}
+
+/* Buttons */
+.login-btn,
+.create-account-btn {
+    width: 100%;
+    padding: 16px 24px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border: none;
+    cursor: pointer;
+    transition: var(--transition);
+    font-family: inherit;
+}
+
+.login-btn {
+    background-color: var(--primary-color);
+    color: var(--secondary-color);
+    margin-bottom: 32px;
+}
+
+.login-btn:hover {
+    background-color: #333;
+}
+
+.create-account-btn {
+    background-color: transparent;
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+}
+
+.create-account-btn:hover {
+    background-color: var(--primary-color);
+    color: var(--secondary-color);
+}
+
+/* Divider */
+.divider {
+    margin: 40px 0;
+}
+
+.divider hr {
+    border: none;
+    height: 1px;
+    background-color: var(--border-color);
+}
+
+/* New Customer Section */
+.new-customer-section {
+    text-align: left;
+}
+
+.new-customer-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 16px;
+}
+
+.new-customer-text {
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-color);
+    margin-bottom: 24px;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .login-container {
+        flex-direction: column;
+    }
+    
+    .login-image {
+        height: 40vh;
+        min-height: 300px;
+    }
+    
+    .login-form-container {
+        flex: none;
+        min-height: 60vh;
+    }
+}
+
+@media (max-width: 768px) {
+    .login-form-container {
+        padding: 20px;
+    }
+    
+    .login-title {
+        font-size: 24px;
+        margin-bottom: 32px;
+    }
+    
+    .form-options {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .login-image {
+        height: 30vh;
+        min-height: 200px;
+    }
+    
+    .login-title {
+        font-size: 20px;
+        margin-bottom: 24px;
+    }
+    
+    .form-input {
+        padding: 14px 16px;
+    }
+    
+    .login-btn,
+    .create-account-btn {
+        padding: 14px 20px;
+    }
+}
+
+/* Theme Toggle Button */
+.theme-toggle-login {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid #e0e0e0;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: #000000;
+}
+
+.theme-toggle-login:hover {
+    background: rgba(255, 255, 255, 1);
+    transform: scale(1.05);
+}
+
+/* Dark Theme Styles */
+body.dark-theme {
+    background: #000000;
+    color: #ffffff;
+}
+
+body.dark-theme .theme-toggle-login {
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid #333333;
+    color: #ffffff;
+}
+
+body.dark-theme .theme-toggle-login:hover {
+    background: rgba(0, 0, 0, 0.9);
+}
+
+body.dark-theme .login-form-container {
+    background: #000000;
+}
+
+body.dark-theme .login-title {
+    color: #ffffff;
+}
+
+body.dark-theme .form-label {
+    color: #ffffff;
+}
+
+body.dark-theme .form-input {
+    background: #111111;
+    border-color: #333333;
+    color: #ffffff;
+}
+
+body.dark-theme .form-input::placeholder {
+    color: #666666;
+}
+
+body.dark-theme .form-input:focus {
+    border-color: #ffffff;
+    background: #1a1a1a;
+}
+
+body.dark-theme .password-toggle {
+    color: #999999;
+}
+
+body.dark-theme .password-toggle:hover {
+    color: #ffffff;
+}
+
+body.dark-theme .checkbox-wrapper {
+    color: #ffffff;
+}
+
+body.dark-theme .checkbox-wrapper input:checked ~ .checkmark {
+    background-color: #ffffff;
+}
+
+body.dark-theme .checkbox-wrapper input:checked ~ .checkmark:after {
+    border-color: #000000;
+}
+
+body.dark-theme .forgot-password {
+    color: #999999;
+}
+
+body.dark-theme .forgot-password:hover {
+    color: #ffffff;
+}
+
+body.dark-theme .login-btn {
+    background: #ffffff;
+    color: #000000;
+}
+
+body.dark-theme .login-btn:hover {
+    background: #e0e0e0;
+}
+
+body.dark-theme .divider hr {
+    border-color: #333333;
+}
+
+body.dark-theme .new-customer-title {
+    color: #ffffff;
+}
+
+body.dark-theme .new-customer-text {
+    color: #999999;
+}
+
+body.dark-theme .create-account-btn {
+    background: transparent;
+    border: 2px solid #ffffff;
+    color: #ffffff;
+}
+
+body.dark-theme .create-account-btn:hover {
+    background: #ffffff;
+    color: #000000;
+}

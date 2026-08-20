@@ -1,0 +1,988 @@
+{
+  "spins": [
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T14:30:08.856Z",
+      "slotId": 1,
+      "slotName": "Эщкере",
+      "prize": "10% скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T14:30:22.000Z",
+      "slotId": 1,
+      "slotName": "Эщкере",
+      "prize": "10% скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T14:32:14.593Z",
+      "slotId": 1,
+      "slotName": "Эщкере",
+      "prize": "10% скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T14:32:21.594Z",
+      "slotId": 1,
+      "slotName": "Эщкере",
+      "prize": "10% скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T14:42:22.037Z",
+      "slotId": 1,
+      "slotName": "Эщкере",
+      "prize": "10% скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T14:45:43.538Z",
+      "slotId": 1,
+      "slotName": "Эщкере",
+      "prize": "10% скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T14:45:51.536Z",
+      "slotId": 2,
+      "slotName": "Jacket c.p.company DD SHELL Puffer Jacket",
+      "prize": "Jacket c.p.company DD SHELL Puffer Jacket",
+      "rarity": "epic"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T14:46:01.527Z",
+      "slotId": 2,
+      "slotName": "Jacket c.p.company DD SHELL Puffer Jacket",
+      "prize": "Jacket c.p.company DD SHELL Puffer Jacket",
+      "rarity": "epic"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T14:46:06.748Z",
+      "slotId": 2,
+      "slotName": "Jacket c.p.company DD SHELL Puffer Jacket",
+      "prize": "Jacket c.p.company DD SHELL Puffer Jacket",
+      "rarity": "epic"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T14:46:12.344Z",
+      "slotId": 5,
+      "slotName": "Gucci Card Holder",
+      "prize": "Gucci Card Holder",
+      "rarity": "epic"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T14:46:17.796Z",
+      "slotId": 1,
+      "slotName": "Эщкере",
+      "prize": "10% скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T14:46:36.504Z",
+      "slotId": 4,
+      "slotName": "50% ",
+      "prize": "50% скидка",
+      "rarity": "legendary"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T14:47:04.839Z",
+      "slotId": 4,
+      "slotName": "50% ",
+      "prize": "50% скидка",
+      "rarity": "legendary"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T14:47:49.770Z",
+      "slotId": 1,
+      "slotName": "Эщкере",
+      "prize": "10% скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T14:47:55.985Z",
+      "slotId": 2,
+      "slotName": "Jacket c.p.company DD SHELL Puffer Jacket",
+      "prize": "Jacket c.p.company DD SHELL Puffer Jacket",
+      "rarity": "epic"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T14:48:29.840Z",
+      "slotId": 1,
+      "slotName": "Эщкере",
+      "prize": "10% скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T14:49:12.945Z",
+      "slotId": 1,
+      "slotName": "Эщкере",
+      "prize": "10% скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T14:50:04.135Z",
+      "slotId": 5,
+      "slotName": "Gucci Card Holder",
+      "prize": "Gucci Card Holder",
+      "rarity": "epic"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T14:50:16.332Z",
+      "slotId": 3,
+      "slotName": "30% скидка",
+      "prize": "30% скидка",
+      "rarity": "rare"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T15:06:28.958Z",
+      "slotId": 1,
+      "slotName": "Эщкере",
+      "prize": "10% скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T15:06:34.504Z",
+      "slotId": 3,
+      "slotName": "30% скидка",
+      "prize": "30% скидка",
+      "rarity": "rare"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T17:26:44.064Z",
+      "slotId": 4,
+      "slotName": "50% ",
+      "prize": "50% скидка",
+      "rarity": "legendary"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T17:26:50.021Z",
+      "slotId": 4,
+      "slotName": "50% ",
+      "prize": "50% скидка",
+      "rarity": "legendary"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T17:26:55.647Z",
+      "slotId": 1,
+      "slotName": "Эщкере",
+      "prize": "10% скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T17:27:47.932Z",
+      "slotId": 3,
+      "slotName": "30% скидка",
+      "prize": "30% скидка",
+      "rarity": "rare"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T17:30:43.596Z",
+      "slotId": 1,
+      "slotName": "Эщкере",
+      "prize": "10% скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T17:30:49.297Z",
+      "slotId": 3,
+      "slotName": "30% скидка",
+      "prize": "30% скидка",
+      "rarity": "rare"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T17:30:56.077Z",
+      "slotId": 5,
+      "slotName": "Gucci Card Holder",
+      "prize": "Gucci Card Holder",
+      "rarity": "epic"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T18:24:37.095Z",
+      "slotId": 1,
+      "slotName": "Эщкере",
+      "prize": "10% скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T18:28:42.283Z",
+      "slotId": 1,
+      "slotName": "Эщкере",
+      "prize": "10% скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T22:57:53.923Z",
+      "slotId": 1,
+      "slotName": "Эщкере",
+      "prize": "10% скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T22:57:59.868Z",
+      "slotId": 5,
+      "slotName": "Gucci Card Holder",
+      "prize": "Gucci Card Holder",
+      "rarity": "epic"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-16T23:30:32.037Z",
+      "slotId": 1,
+      "slotName": "Эщкере",
+      "prize": "10% скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-17T04:09:58.565Z",
+      "slotId": 6,
+      "slotName": "NB X StoneIslnad",
+      "prize": "New Balance 574 x StoneIsland",
+      "rarity": "legendary"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-17T04:17:26.650Z",
+      "slotId": 1,
+      "slotName": "Эщкере",
+      "prize": "10% скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-17T08:08:04.654Z",
+      "slotId": 5,
+      "slotName": "Gucci Card Holder",
+      "prize": "Gucci Card Holder",
+      "rarity": "epic"
+    },
+    {
+      "userId": "7191638901",
+      "timestamp": "2026-02-17T08:21:57.617Z",
+      "slotId": 3,
+      "slotName": "30% скидка",
+      "prize": "30% скидка",
+      "rarity": "rare"
+    },
+    {
+      "userId": "7191638901",
+      "timestamp": "2026-02-17T08:22:06.435Z",
+      "slotId": 6,
+      "slotName": "NB X StoneIslnad",
+      "prize": "New Balance 574 x StoneIsland",
+      "rarity": "legendary"
+    },
+    {
+      "userId": "7191638901",
+      "timestamp": "2026-02-17T08:22:13.727Z",
+      "slotId": 6,
+      "slotName": "NB X StoneIslnad",
+      "prize": "New Balance 574 x StoneIsland",
+      "rarity": "legendary"
+    },
+    {
+      "userId": "7191638901",
+      "timestamp": "2026-02-17T08:22:24.255Z",
+      "slotId": 1,
+      "slotName": "Эщкере",
+      "prize": "10% скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "5517685588",
+      "timestamp": "2026-02-17T08:22:24.432Z",
+      "slotId": 3,
+      "slotName": "30% скидка",
+      "prize": "30% скидка",
+      "rarity": "rare"
+    },
+    {
+      "userId": "5517685588",
+      "timestamp": "2026-02-17T08:22:48.527Z",
+      "slotId": 1,
+      "slotName": "Эщкере",
+      "prize": "10% скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "7191638901",
+      "timestamp": "2026-02-17T08:23:42.835Z",
+      "slotId": 1,
+      "slotName": "Эщкере",
+      "prize": "10% скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "7191638901",
+      "timestamp": "2026-02-17T08:24:26.426Z",
+      "slotId": 1,
+      "slotName": "Эщкере",
+      "prize": "10% скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "5517685588",
+      "timestamp": "2026-02-17T08:24:27.752Z",
+      "slotId": 3,
+      "slotName": "30% скидка",
+      "prize": "30% скидка",
+      "rarity": "rare"
+    },
+    {
+      "userId": "7191638901",
+      "timestamp": "2026-02-17T08:24:34.092Z",
+      "slotId": 6,
+      "slotName": "NB X StoneIslnad",
+      "prize": "New Balance 574 x StoneIsland",
+      "rarity": "legendary"
+    },
+    {
+      "userId": "5517685588",
+      "timestamp": "2026-02-17T08:24:34.205Z",
+      "slotId": 2,
+      "slotName": "Jacket c.p.company DD SHELL Puffer Jacket",
+      "prize": "Jacket c.p.company DD SHELL Puffer Jacket",
+      "rarity": "epic"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-17T08:46:14.125Z",
+      "slotId": 5,
+      "slotName": "Gucci Card Holder",
+      "prize": "Gucci Card Holder",
+      "rarity": "epic"
+    },
+    {
+      "userId": "7191638901",
+      "timestamp": "2026-02-17T08:49:35.597Z",
+      "slotId": 3,
+      "slotName": "30% скидка",
+      "prize": "30% скидка",
+      "rarity": "rare"
+    },
+    {
+      "userId": "7191638901",
+      "timestamp": "2026-02-17T08:49:43.466Z",
+      "slotId": 3,
+      "slotName": "30% скидка",
+      "prize": "30% скидка",
+      "rarity": "rare"
+    },
+    {
+      "userId": "7191638901",
+      "timestamp": "2026-02-17T08:49:48.751Z",
+      "slotId": 1,
+      "slotName": "Эщкере",
+      "prize": "10% скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "7191638901",
+      "timestamp": "2026-02-17T08:49:54.891Z",
+      "slotId": 3,
+      "slotName": "30% скидка",
+      "prize": "30% скидка",
+      "rarity": "rare"
+    },
+    {
+      "userId": "7191638901",
+      "timestamp": "2026-02-17T08:50:00.316Z",
+      "slotId": 4,
+      "slotName": "50% ",
+      "prize": "50% скидка",
+      "rarity": "legendary"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-17T13:29:53.724Z",
+      "slotId": 3,
+      "slotName": "30% скидка",
+      "prize": "30% скидка",
+      "rarity": "rare"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-17T13:46:09.692Z",
+      "slotId": 4,
+      "slotName": "50% ",
+      "prize": "50% скидка",
+      "rarity": "legendary"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-17T14:54:20.786Z",
+      "slotId": 1,
+      "slotName": "Эщкере",
+      "prize": "10% скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-17T15:14:52.778Z",
+      "slotId": 1,
+      "slotName": "Эщкере",
+      "prize": "10% скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-17T15:23:44.336Z",
+      "slotId": 5,
+      "slotName": "Gucci Card Holder",
+      "prize": "Gucci Card Holder",
+      "rarity": "epic"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-17T15:31:48.128Z",
+      "slotId": 3,
+      "slotName": "30% скидка",
+      "prize": "30% скидка",
+      "rarity": "rare"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-17T16:10:20.186Z",
+      "slotId": 2,
+      "slotName": "5% SALE",
+      "prize": "5% Скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-17T16:10:48.199Z",
+      "slotId": 2,
+      "slotName": "5% SALE",
+      "prize": "5% Скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-17T16:10:56.247Z",
+      "slotId": 2,
+      "slotName": "5% SALE",
+      "prize": "5% Скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-17T16:11:01.799Z",
+      "slotId": 2,
+      "slotName": "5% SALE",
+      "prize": "5% Скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-17T16:11:06.951Z",
+      "slotId": 6,
+      "slotName": "NB X StoneIslnad",
+      "prize": "New Balance 574 x StoneIsland",
+      "rarity": "legendary"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-17T16:11:13.348Z",
+      "slotId": 2,
+      "slotName": "5% SALE",
+      "prize": "5% Скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "5517685588",
+      "timestamp": "2026-02-17T16:18:28.741Z",
+      "slotId": 3,
+      "slotName": "20% скидка",
+      "prize": "20% скидка",
+      "rarity": "epic"
+    },
+    {
+      "userId": "5517685588",
+      "timestamp": "2026-02-17T16:18:37.210Z",
+      "slotId": 2,
+      "slotName": "5% SALE",
+      "prize": "5% Скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "5517685588",
+      "timestamp": "2026-02-17T16:18:42.781Z",
+      "slotId": 2,
+      "slotName": "5% SALE",
+      "prize": "5% Скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "5517685588",
+      "timestamp": "2026-02-17T16:18:48.305Z",
+      "slotId": 3,
+      "slotName": "20% скидка",
+      "prize": "20% скидка",
+      "rarity": "epic"
+    },
+    {
+      "userId": "5517685588",
+      "timestamp": "2026-02-17T16:18:54.141Z",
+      "slotId": 5,
+      "slotName": "Gucci Card Holder",
+      "prize": "Gucci Card Holder",
+      "rarity": "epic"
+    },
+    {
+      "userId": "5517685588",
+      "timestamp": "2026-02-17T16:19:00.490Z",
+      "slotId": 3,
+      "slotName": "20% скидка",
+      "prize": "20% скидка",
+      "rarity": "epic"
+    },
+    {
+      "userId": "5517685588",
+      "timestamp": "2026-02-17T16:19:06.561Z",
+      "slotId": 4,
+      "slotName": "10% ",
+      "prize": "10% скидка",
+      "rarity": "uncommon"
+    },
+    {
+      "userId": "5517685588",
+      "timestamp": "2026-02-17T16:19:12.559Z",
+      "slotId": 1,
+      "slotName": "CP COMPAY DD SHELL PUFF JACKET",
+      "prize": "CP COMPAY DD SHELL PUFF JACKET",
+      "rarity": "legendary"
+    },
+    {
+      "userId": "5517685588",
+      "timestamp": "2026-02-17T16:19:29.437Z",
+      "slotId": 2,
+      "slotName": "5% SALE",
+      "prize": "5% Скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "5517685588",
+      "timestamp": "2026-02-17T16:19:54.671Z",
+      "slotId": 4,
+      "slotName": "10% ",
+      "prize": "10% скидка",
+      "rarity": "uncommon"
+    },
+    {
+      "userId": "5517685588",
+      "timestamp": "2026-02-17T16:20:02.389Z",
+      "slotId": 3,
+      "slotName": "20% скидка",
+      "prize": "20% скидка",
+      "rarity": "epic"
+    },
+    {
+      "userId": "5517685588",
+      "timestamp": "2026-02-17T16:20:09.889Z",
+      "slotId": 2,
+      "slotName": "5% SALE",
+      "prize": "5% Скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "5517685588",
+      "timestamp": "2026-02-17T16:20:16.937Z",
+      "slotId": 5,
+      "slotName": "Gucci Card Holder",
+      "prize": "Gucci Card Holder",
+      "rarity": "epic"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-17T18:57:55.299Z",
+      "slotId": 2,
+      "slotName": "5% SALE",
+      "prize": "5% Скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-17T21:48:30.654Z",
+      "slotId": 1,
+      "slotName": "CP COMPAY DD SHELL PUFF JACKET",
+      "prize": "CP COMPAY DD SHELL PUFF JACKET",
+      "rarity": "legendary"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-17T22:08:22.861Z",
+      "slotId": 4,
+      "slotName": "10% ",
+      "prize": "10% скидка",
+      "rarity": "uncommon"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-18T15:35:38.339Z",
+      "slotId": 2,
+      "slotName": "5% SALE",
+      "prize": "5% Скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-18T15:35:43.974Z",
+      "slotId": 5,
+      "slotName": "Gucci Card Holder",
+      "prize": "Gucci Card Holder",
+      "rarity": "epic"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-21T17:10:22.036Z",
+      "slotId": 2,
+      "slotName": "5% SALE",
+      "prize": "5% Скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-21T17:10:28.166Z",
+      "slotId": 2,
+      "slotName": "5% SALE",
+      "prize": "5% Скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-21T17:10:33.328Z",
+      "slotId": 2,
+      "slotName": "5% SALE",
+      "prize": "5% Скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-21T17:10:38.671Z",
+      "slotId": 2,
+      "slotName": "5% SALE",
+      "prize": "5% Скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-21T17:10:44.170Z",
+      "slotId": 4,
+      "slotName": "10% ",
+      "prize": "10% скидка",
+      "rarity": "uncommon"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-21T17:10:50.097Z",
+      "slotId": 4,
+      "slotName": "10% ",
+      "prize": "10% скидка",
+      "rarity": "uncommon"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-21T17:10:55.991Z",
+      "slotId": 2,
+      "slotName": "5% SALE",
+      "prize": "5% Скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-21T17:11:01.838Z",
+      "slotId": 3,
+      "slotName": "20% скидка",
+      "prize": "20% скидка",
+      "rarity": "epic"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-21T17:11:07.749Z",
+      "slotId": 1,
+      "slotName": "CP COMPAY DD SHELL PUFF JACKET",
+      "prize": "CP COMPAY DD SHELL PUFF JACKET",
+      "rarity": "legendary"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-22T12:22:06.992Z",
+      "slotId": 2,
+      "slotName": "5% SALE",
+      "prize": "5% Скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-22T14:00:14.516Z",
+      "slotId": 6,
+      "slotName": "NB X StoneIslnad",
+      "prize": "New Balance 574 x StoneIsland",
+      "rarity": "legendary"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-22T14:00:21.861Z",
+      "slotId": 5,
+      "slotName": "Gucci Card Holder",
+      "prize": "Gucci Card Holder",
+      "rarity": "epic"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-23T09:10:27.612Z",
+      "slotId": 2,
+      "slotName": "5% SALE",
+      "prize": "5% Скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-23T09:38:32.724Z",
+      "slotId": 2,
+      "slotName": "5% SALE",
+      "prize": "5% Скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-23T15:42:26.295Z",
+      "slotId": 6,
+      "slotName": "NB X StoneIslnad",
+      "prize": "New Balance 574 x StoneIsland",
+      "rarity": "legendary"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-23T15:44:12.784Z",
+      "slotId": 5,
+      "slotName": "Gucci Card Holder",
+      "prize": "Gucci Card Holder",
+      "rarity": "epic"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-23T15:48:48.327Z",
+      "slotId": 2,
+      "slotName": "5% SALE",
+      "prize": "5% Скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-23T15:49:06.605Z",
+      "slotId": 2,
+      "slotName": "5% SALE",
+      "prize": "5% Скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-23T15:51:53.673Z",
+      "slotId": 1,
+      "slotName": "CP COMPAY DD SHELL PUFF JACKET",
+      "prize": "CP COMPAY DD SHELL PUFF JACKET",
+      "rarity": "legendary"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-23T15:52:07.041Z",
+      "slotId": 4,
+      "slotName": "10% ",
+      "prize": "10% скидка",
+      "rarity": "uncommon"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-23T15:52:12.678Z",
+      "slotId": 3,
+      "slotName": "20% скидка",
+      "prize": "20% скидка",
+      "rarity": "epic"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-23T15:57:32.331Z",
+      "slotId": 5,
+      "slotName": "Gucci Card Holder",
+      "prize": "Gucci Card Holder",
+      "rarity": "epic"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-23T15:58:26.365Z",
+      "slotId": 4,
+      "slotName": "10% ",
+      "prize": "10% скидка",
+      "rarity": "uncommon"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-23T16:00:34.245Z",
+      "slotId": 2,
+      "slotName": "5% SALE",
+      "prize": "5% Скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-23T16:00:46.538Z",
+      "slotId": 2,
+      "slotName": "5% SALE",
+      "prize": "5% Скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-23T16:00:52.055Z",
+      "slotId": 2,
+      "slotName": "5% SALE",
+      "prize": "5% Скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-23T16:00:58.385Z",
+      "slotId": 5,
+      "slotName": "Gucci Card Holder",
+      "prize": "Gucci Card Holder",
+      "rarity": "epic"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-23T16:02:11.009Z",
+      "slotId": 5,
+      "slotName": "Gucci Card Holder",
+      "prize": "Gucci Card Holder",
+      "rarity": "epic"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-23T16:02:17.312Z",
+      "slotId": 5,
+      "slotName": "Gucci Card Holder",
+      "prize": "Gucci Card Holder",
+      "rarity": "epic"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-23T16:09:38.250Z",
+      "slotId": 2,
+      "slotName": "5% SALE",
+      "prize": "5% Скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-23T16:09:47.401Z",
+      "slotId": 2,
+      "slotName": "5% SALE",
+      "prize": "5% Скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-23T16:09:55.654Z",
+      "slotId": 2,
+      "slotName": "5% SALE",
+      "prize": "5% Скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-23T16:10:37.260Z",
+      "slotId": 1,
+      "slotName": "CP COMPAY DD SHELL PUFF JACKET",
+      "prize": "CP COMPAY DD SHELL PUFF JACKET",
+      "rarity": "legendary"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-23T16:10:46.137Z",
+      "slotId": 6,
+      "slotName": "NB X StoneIslnad",
+      "prize": "New Balance 574 x StoneIsland",
+      "rarity": "legendary"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-23T16:25:55.855Z",
+      "slotId": 2,
+      "slotName": "5% SALE",
+      "prize": "5% Скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-23T16:26:05.167Z",
+      "slotId": 4,
+      "slotName": "10% ",
+      "prize": "10% скидка",
+      "rarity": "uncommon"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-25T15:55:24.423Z",
+      "slotId": 6,
+      "slotName": "NB X StoneIslnad",
+      "prize": "New Balance 574 x StoneIsland",
+      "rarity": "legendary"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-25T15:55:55.986Z",
+      "slotId": 2,
+      "slotName": "5% SALE",
+      "prize": "5% Скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-02-25T16:19:33.677Z",
+      "slotId": 2,
+      "slotName": "5% SALE",
+      "prize": "5% Скидка",
+      "rarity": "common"
+    },
+    {
+      "userId": "8222800886",
+      "timestamp": "2026-07-07T14:44:33.856Z",
+      "slotId": 6,
+      "slotName": "NB X StoneIslnad",
+      "prize": "New Balance 574 x StoneIsland",
+      "rarity": "legendary"
+    }
+  ]
+}

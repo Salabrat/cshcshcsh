@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enable Admin Mode</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            max-width: 400px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: 500;
+        }
+        .status.active {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.inactive {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+        }
+        .logout-btn {
+            background: #f44336;
+        }
+        .logout-btn:hover {
+            background: #da190b;
+            box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
+        }
+        .info {
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        .link-btn {
+            background: #2196F3;
+            display: inline-block;
+            text-decoration: none;
+            color: white;
+            padding: 12px 30px;
+            border-radius: 6px;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+        .link-btn:hover {
+            background: #1976D2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Admin Mode Control</h1>
+        
+        <div id="status" class="status">Checking status...</div>
+        
+        <button onclick="enableAdmin()">✅ Enable Admin Mode</button>
+        <button onclick="disableAdmin()" class="logout-btn">❌ Disable Admin Mode</button>
+        
+        <div class="info">
+            <p><strong>После включения режима администратора:</strong></p>
+            <ol style="text-align: left;">
+                <li>Перейдите на главную страницу</li>
+                <li>Обновите страницу (F5)</li>
+                <li>Наведите курсор на тексты</li>
+                <li>Появятся красные кнопки редактирования</li>
+            </ol>
+        </div>
+        
+        <a href="index.html" class="link-btn">📄 Go to Main Page</a>
+    </div>
+
+    <script>
+        function checkStatus() {
+            const adminLoggedIn = localStorage.getItem('adminLoggedIn') === 'true';
+            const username = localStorage.getItem('username');
+            const statusDiv = document.getElementById('status');
+            
+            if (adminLoggedIn || username === 'admin') {
+                statusDiv.className = 'status active';
+                statusDiv.innerHTML = '✅ <strong>Admin Mode is ACTIVE</strong><br>Username: ' + (username || 'admin');
+            } else {
+                statusDiv.className = 'status inactive';
+                statusDiv.innerHTML = '❌ <strong>Admin Mode is INACTIVE</strong>';
+            }
+        }
+
+        function enableAdmin() {
+            localStorage.setItem('adminLoggedIn', 'true');
+            localStorage.setItem('username', 'admin');
+            checkStatus();
+            alert('✅ Admin mode enabled!\n\nNow:\n1. Go to the main page\n2. Refresh the page (F5)\n3. Hover over texts to see edit buttons');
+        }
+
+        function disableAdmin() {
+            localStorage.removeItem('adminLoggedIn');
+            localStorage.removeItem('username');
+            checkStatus();
+            alert('❌ Admin mode disabled!');
+        }
+
+        // Check status on load
+        checkStatus();
+    </script>
+</body>
+</html>

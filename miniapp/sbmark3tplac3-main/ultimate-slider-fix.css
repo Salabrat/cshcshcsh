@@ -1,0 +1,177 @@
+/* Ultimate CSS fix to prevent slider white space */
+
+/* Force the trending grid to not scroll beyond content */
+.trending-grid {
+    transition: transform 0.3s ease !important;
+}
+
+/* Desktop: 4 items per view */
+@media (min-width: 769px) {
+    .trending-grid[data-current-index="0"] {
+        transform: translateX(0%) !important;
+    }
+    
+    .trending-grid[data-current-index="1"] {
+        transform: translateX(-25%) !important;
+    }
+    
+    .trending-grid[data-current-index="2"] {
+        transform: translateX(-50%) !important;
+    }
+    
+    .trending-grid[data-current-index="3"] {
+        transform: translateX(-75%) !important;
+    }
+    
+    .trending-grid[data-current-index="4"] {
+        transform: translateX(-100%) !important;
+    }
+    
+    .trending-grid[data-current-index="5"] {
+        transform: translateX(-125%) !important;
+    }
+    
+    /* Index 6 should be the maximum for 10 items (shows items 7,8,9,10) */
+    .trending-grid[data-current-index="6"] {
+        transform: translateX(-150%) !important;
+    }
+    
+    /* Prevent scrolling beyond index 6 on desktop */
+    .trending-grid[data-current-index="7"],
+    .trending-grid[data-current-index="8"],
+    .trending-grid[data-current-index="9"],
+    .trending-grid[data-current-index="10"] {
+        transform: translateX(-150%) !important;
+    }
+}
+
+/* Tablet: 2 items per view */
+@media (min-width: 481px) and (max-width: 768px) {
+    .trending-grid[data-current-index="0"] {
+        transform: translateX(0%) !important;
+    }
+    
+    .trending-grid[data-current-index="1"] {
+        transform: translateX(-50%) !important;
+    }
+    
+    .trending-grid[data-current-index="2"] {
+        transform: translateX(-100%) !important;
+    }
+    
+    .trending-grid[data-current-index="3"] {
+        transform: translateX(-150%) !important;
+    }
+    
+    .trending-grid[data-current-index="4"] {
+        transform: translateX(-200%) !important;
+    }
+    
+    .trending-grid[data-current-index="5"] {
+        transform: translateX(-250%) !important;
+    }
+    
+    .trending-grid[data-current-index="6"] {
+        transform: translateX(-300%) !important;
+    }
+    
+    .trending-grid[data-current-index="7"] {
+        transform: translateX(-350%) !important;
+    }
+    
+    .trending-grid[data-current-index="8"] {
+        transform: translateX(-400%) !important;
+    }
+    
+    /* Prevent going beyond actual items */
+    .trending-grid[data-current-index="9"],
+    .trending-grid[data-current-index="10"] {
+        transform: translateX(-400%) !important;
+    }
+}
+
+/* Mobile: 1 item per view */
+@media (max-width: 480px) {
+    .trending-grid[data-current-index="0"] {
+        transform: translateX(0%) !important;
+    }
+    
+    .trending-grid[data-current-index="1"] {
+        transform: translateX(-100%) !important;
+    }
+    
+    .trending-grid[data-current-index="2"] {
+        transform: translateX(-200%) !important;
+    }
+    
+    .trending-grid[data-current-index="3"] {
+        transform: translateX(-300%) !important;
+    }
+    
+    .trending-grid[data-current-index="4"] {
+        transform: translateX(-400%) !important;
+    }
+    
+    .trending-grid[data-current-index="5"] {
+        transform: translateX(-500%) !important;
+    }
+    
+    .trending-grid[data-current-index="6"] {
+        transform: translateX(-600%) !important;
+    }
+    
+    .trending-grid[data-current-index="7"] {
+        transform: translateX(-700%) !important;
+    }
+    
+    .trending-grid[data-current-index="8"] {
+        transform: translateX(-800%) !important;
+    }
+    
+    .trending-grid[data-current-index="9"] {
+        transform: translateX(-900%) !important;
+    }
+}
+
+/* Force disable next arrow at maximum positions */
+/* Desktop: Index 6 is max for 10 items (4 per view) */
+@media (min-width: 769px) {
+    .trending-grid[data-current-index="6"] ~ .next-arrow,
+    .trending-grid[data-current-index="6"] + .next-arrow,
+    .trending-slider:has(.trending-grid[data-current-index="6"]) .next-arrow {
+        opacity: 0.3 !important;
+        pointer-events: none !important;
+        cursor: not-allowed !important;
+    }
+    
+    /* Also for higher indices that shouldn't exist */
+    .trending-grid[data-current-index="7"] ~ .next-arrow,
+    .trending-grid[data-current-index="8"] ~ .next-arrow,
+    .trending-grid[data-current-index="9"] ~ .next-arrow,
+    .trending-grid[data-current-index="10"] ~ .next-arrow {
+        opacity: 0.3 !important;
+        pointer-events: none !important;
+        cursor: not-allowed !important;
+    }
+}
+
+/* Disable next arrow when at max position */
+.slider-arrow.next-arrow[style*="opacity: 0.3"] {
+    pointer-events: none !important;
+    cursor: default !important;
+}
+
+/* Visual feedback for disabled state */
+.slider-arrow[style*="opacity: 0.3"] {
+    opacity: 0.3 !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+}
+
+/* Force disabled state for next arrow */
+.next-arrow.disabled,
+.next-arrow[disabled] {
+    opacity: 0.3 !important;
+    pointer-events: none !important;
+    cursor: not-allowed !important;
+}

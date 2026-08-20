@@ -1,0 +1,18 @@
+@font-face {
+    font-family: 'AKONY';
+    src: url('/fonts/AKONY.woff2') format('woff2'),
+         url('/fonts/AKONY.woff') format('woff'),
+         url('/fonts/AKONY.ttf') format('truetype'),
+         url('/fonts/AKONY.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'SOUTHGHETTO';
+    src: url('/fonts/SOUTHGHETTO.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
