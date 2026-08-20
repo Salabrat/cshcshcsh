@@ -5058,6 +5058,7 @@ async def admin_edit_product_name_start(callback: types.CallbackQuery, state: FS
             return await callback.answer("Недостаточно прав")
         product_id = int(callback.data.split("_")[-1])
         
+        await state.finish()
         # Получаем текущее название товара
         product = await db.get_catalog_item(product_id)
         current_name = product[3] if product else "Неизвестно"
@@ -5110,6 +5111,7 @@ async def admin_edit_product_desc_start(callback: types.CallbackQuery, state: FS
             return await callback.answer("Недостаточно прав")
         product_id = int(callback.data.split("_")[-1])
         
+        await state.finish()
         # Получаем текущее описание товара
         product = await db.get_catalog_item(product_id)
         current_desc = product[4] if product and product[4] else "Описание отсутствует"
@@ -5167,6 +5169,7 @@ async def admin_edit_product_preview_start(callback: types.CallbackQuery, state:
             return await callback.answer("Недостаточно прав")
         product_id = int(callback.data.split("_")[-1])
         
+        await state.finish()
         # Получаем текущую превью-ссылку товара
         product = await db.get_catalog_item(product_id)
         current_preview = product[7] if product and product[7] and product[7] != 'None' else "Не установлена"
@@ -5216,6 +5219,7 @@ async def admin_edit_product_price_start(callback: types.CallbackQuery, state: F
             return await callback.answer("Недостаточно прав")
         product_id = int(callback.data.split("_")[-1])
         
+        await state.finish()
         # Получаем текущую цену товара
         price_info = await db.get_product_price(product_id)
         current_price = "Не установлена"
@@ -5275,6 +5279,7 @@ async def admin_edit_product_photo_start(callback: types.CallbackQuery, state: F
             return await callback.answer("Недостаточно прав")
         product_id = int(callback.data.split("_")[-1])
         
+        await state.finish()
         # Получаем информацию о текущем фото товара
         product = await db.get_catalog_item(product_id)
         current_photo_status = "Нет фото"
@@ -5808,13 +5813,16 @@ async def admin_edit_category_menu(callback: types.CallbackQuery, state: FSMCont
         category_id = int(callback.data.split("_")[-1])
         from keyboards import admin_edit_category_menu_kb
         kb = admin_edit_category_menu_kb(category_id)
-        
+
+        # Очищаем состояние FSM при возврате к меню
+        await state.finish()
+
         # Проверяем, изменилась ли клавиатура
         current_keyboard = callback.message.reply_markup
         if current_keyboard and str(current_keyboard) == str(kb):
             await callback.answer("Меню уже открыто")
             return
-            
+
         await callback.message.edit_reply_markup(reply_markup=kb)
         await callback.answer()
     except Exception as e:
@@ -5831,13 +5839,16 @@ async def admin_edit_theme_menu(callback: types.CallbackQuery, state: FSMContext
         theme_id = int(callback.data.split("_")[-1])
         from keyboards import admin_edit_theme_menu_kb
         kb = admin_edit_theme_menu_kb(theme_id)
-        
+
+        # Очищаем состояние FSM при возврате к меню
+        await state.finish()
+
         # Проверяем, изменилась ли клавиатура
         current_keyboard = callback.message.reply_markup
         if current_keyboard and str(current_keyboard) == str(kb):
             await callback.answer("Меню уже открыто")
             return
-            
+
         await callback.message.edit_reply_markup(reply_markup=kb)
         await callback.answer()
     except Exception as e:
@@ -5854,13 +5865,16 @@ async def admin_edit_subcategory_menu(callback: types.CallbackQuery, state: FSMC
         subcategory_id = int(callback.data.split("_")[-1])
         from keyboards import admin_edit_subcategory_menu_kb
         kb = admin_edit_subcategory_menu_kb(subcategory_id)
-        
+
+        # Очищаем состояние FSM при возврате к меню
+        await state.finish()
+
         # Проверяем, изменилась ли клавиатура
         current_keyboard = callback.message.reply_markup
         if current_keyboard and str(current_keyboard) == str(kb):
             await callback.answer("Меню уже открыто")
             return
-            
+
         await callback.message.edit_reply_markup(reply_markup=kb)
         await callback.answer()
     except Exception as e:
@@ -5877,6 +5891,7 @@ async def admin_edit_category_name_start(callback: types.CallbackQuery, state: F
             return await callback.answer("Недостаточно прав")
         category_id = int(callback.data.split("_")[-1])
         
+        await state.finish()
         # Получаем текущее название категории
         category = await db.get_catalog_item(category_id)
         current_name = category[3] if category else "Неизвестно"
@@ -5905,6 +5920,7 @@ async def admin_edit_theme_name_start(callback: types.CallbackQuery, state: FSMC
             return await callback.answer("Недостаточно прав")
         theme_id = int(callback.data.split("_")[-1])
         
+        await state.finish()
         # Получаем текущее название темы
         theme = await db.get_catalog_item(theme_id)
         current_name = theme[3] if theme else "Неизвестно"
@@ -5933,6 +5949,7 @@ async def admin_edit_subcategory_name_start(callback: types.CallbackQuery, state
             return await callback.answer("Недостаточно прав")
         subcategory_id = int(callback.data.split("_")[-1])
         
+        await state.finish()
         # Получаем текущее название подкатегории
         subcategory = await db.get_catalog_item(subcategory_id)
         current_name = subcategory[3] if subcategory else "Неизвестно"
@@ -6298,6 +6315,7 @@ async def admin_edit_theme_sticker_start(callback: types.CallbackQuery, state: F
             return await callback.answer("Недостаточно прав")
         theme_id = int(callback.data.split("_")[-1])
         
+        await state.finish()
         # Получаем информацию о текущем стикере темы
         theme = await db.get_catalog_item(theme_id)
         current_sticker_status = "Нет стикера"
@@ -7890,14 +7908,16 @@ async def add_product_handler(callback: types.CallbackQuery, state: FSMContext):
     await callback.answer()
 
 @dp.callback_query_handler(lambda c: c.data == "back_to_catalog", state="*")
-async def back_to_catalog_handler(callback: types.CallbackQuery):
+async def back_to_catalog_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик возврата в каталог"""
+    await state.finish()
     await _handle_catalog_button(callback.message)
     await callback.answer()
 
 @dp.callback_query_handler(lambda c: c.data == "back_to_main", state="*")
-async def back_to_main_handler(callback: types.CallbackQuery):
+async def back_to_main_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик возврата в главное меню"""
+    await state.finish()
     # Получаем настройки приветственного сообщения из БД
     welcome_settings = await db.get_welcome_settings()
     welcome_text = welcome_settings.get('text') or cfg.WELCOME_TEXT
@@ -9422,9 +9442,10 @@ async def toggle_payment_method_handler(callback: types.CallbackQuery):
     # Возвращаем к управлению методами оплаты
     await manage_payment_methods_handler(callback)
 
-@dp.callback_query_handler(lambda c: c.data == "back_to_payment_management")
-async def back_to_payment_management_handler(callback: types.CallbackQuery):
+@dp.callback_query_handler(lambda c: c.data == "back_to_payment_management", state="*")
+async def back_to_payment_management_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик возврата к управлению реквизитами"""
+    await state.finish()
     # Проверяем права админа
     if not await is_user_admin(callback.from_user.id):
         await callback.answer("❌ У вас нет прав администратора", show_alert=True)
@@ -9897,12 +9918,13 @@ async def send_command_handler(message: types.Message):
         await message.answer(f"❌ Ошибка: {e}")
 
 @dp.callback_query_handler(lambda c: c.data == "edit_welcome_message")
-async def edit_welcome_message_handler(callback: types.CallbackQuery):
+async def edit_welcome_message_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик кнопки 'Изменить /start'"""
     # Проверяем права админа
     if not await is_user_admin(callback.from_user.id):
         await callback.answer("❌ У вас нет прав администратора", show_alert=True)
         return
+    await state.finish()
     # Получаем текущие настройки
     welcome_settings = await db.get_welcome_settings()
     
@@ -9951,12 +9973,13 @@ async def edit_welcome_photo_handler(callback: types.CallbackQuery):
     await callback.answer()
 
 @dp.callback_query_handler(lambda c: c.data == "edit_catalog_photo")
-async def edit_catalog_photo_handler(callback: types.CallbackQuery):
+async def edit_catalog_photo_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик изменения фото каталога"""
     # Проверяем права админа
     if not await is_user_admin(callback.from_user.id):
         await callback.answer("❌ У вас нет прав администратора", show_alert=True)
         return
+    await state.finish()
     await WelcomeEditStates.waiting_for_catalog_photo.set()
     
     # Получаем текущее фото каталога
@@ -9975,12 +9998,13 @@ async def edit_catalog_photo_handler(callback: types.CallbackQuery):
     await callback.answer()
 
 @dp.callback_query_handler(lambda c: c.data == "edit_bonus_system")
-async def edit_bonus_system_handler(callback: types.CallbackQuery):
+async def edit_bonus_system_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик редактирования системы бонусов"""
     # Проверяем права админа
     if not await is_user_admin(callback.from_user.id):
         await callback.answer("❌ У вас нет прав администратора", show_alert=True)
         return
+    await state.finish()
     
     # Получаем текущие настройки
     bonus_sticker_id = await db.get_bot_setting("bonus_sticker_id")
@@ -10019,11 +10043,12 @@ async def edit_bonus_sticker_handler(callback: types.CallbackQuery):
     await callback.answer()
 
 @dp.callback_query_handler(lambda c: c.data == "edit_bonus_photo")
-async def edit_bonus_photo_handler(callback: types.CallbackQuery):
+async def edit_bonus_photo_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик изменения фото бонусов"""
     if not await is_user_admin(callback.from_user.id):
         await callback.answer("❌ У вас нет прав администратора", show_alert=True)
         return
+    await state.finish()
     await BonusSystemStates.waiting_for_bonus_photo.set()
     from keyboards import create_skip_cancel_kb
     keyboard = create_skip_cancel_kb("skip_bonus_photo", "cancel_bonus_edit")
@@ -10036,11 +10061,12 @@ async def edit_bonus_photo_handler(callback: types.CallbackQuery):
     await callback.answer()
 
 @dp.callback_query_handler(lambda c: c.data == "edit_bonus_description")
-async def edit_bonus_description_handler(callback: types.CallbackQuery):
+async def edit_bonus_description_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик изменения описания бонусов"""
     if not await is_user_admin(callback.from_user.id):
         await callback.answer("❌ У вас нет прав администратора", show_alert=True)
         return
+    await state.finish()
     await BonusSystemStates.waiting_for_bonus_description.set()
     
     current_description = await db.get_bot_setting("bonus_description") or "Не установлено"
@@ -10055,12 +10081,13 @@ async def edit_bonus_description_handler(callback: types.CallbackQuery):
     await callback.answer()
 
 @dp.callback_query_handler(lambda c: c.data == "edit_welcome_text")
-async def edit_welcome_text_handler(callback: types.CallbackQuery):
+async def edit_welcome_text_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик изменения текста"""
     # Проверяем права админа
     if not await is_user_admin(callback.from_user.id):
         await callback.answer("❌ У вас нет прав администратора", show_alert=True)
         return
+    await state.finish()
     await WelcomeEditStates.waiting_for_text.set()
     
     current_text = await db.get_bot_setting("welcome_text") or cfg.WELCOME_TEXT
@@ -10075,16 +10102,18 @@ async def edit_welcome_text_handler(callback: types.CallbackQuery):
     await callback.answer()
 
 @dp.callback_query_handler(lambda c: c.data == "back_to_edit_menu", state="*")
-async def back_to_edit_menu_handler(callback: types.CallbackQuery):
+async def back_to_edit_menu_handler(callback: types.CallbackQuery, state: FSMContext):
     """Возврат к главному меню редактирования"""
     # Проверяем права админа
     if not await is_user_admin(callback.from_user.id):
         await callback.answer("❌ У вас нет прав администратора", show_alert=True)
         return
+    await state.finish()
     await callback.message.edit_text(
         "⚙️ Панель редактирования\n\nВыберите, что хотите изменить:",
         reply_markup=edit_start_menu_kb()
     )
+    await callback.answer()
 
 # Обработчики состояний для редактирования приветственного сообщения
 
@@ -14324,4 +14353,5 @@ async def set_token_command_handler(message: types.Message):
         await message.answer(f"❌ Ошибка: {e}")
 
 if __name__ == '__main__':
+    main()
     main()
