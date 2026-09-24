@@ -19,6 +19,9 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.utils import executor
 from aiogram.utils.exceptions import NetworkError
+# SkipHandler позволяет хендлеру «пропустить» себя, передав апдейт следующему
+# подходящему хендлеру (обычно они выполняются по принципу «первый победил»)
+from aiogram.dispatcher.handler import SkipHandler
 from database import db  
 from config import cfg
 from keyboards import *
@@ -500,99 +503,184 @@ DEFAULT_PAYMENT_DETAILS = {
 }
 
 def is_valid_telegram_file_id(file_id: str) -> bool:
-    """Проверяет, является ли строка валидным Telegram file ID"""
+    """Проверяет, является ли строка валидным Telegram file ID.
+
+    Поддерживает file_id для фото, анимаций (GIF), видео и документов.
+    """
     if not file_id or not isinstance(file_id, str):
         return False
-    
-    # Минимальная длина Telegram file ID
+
+    # Минимальная длина Telegram file ID обычно >= 20 символов
     if len(file_id) < 20:
         return False
-    
-    # Telegram file ID содержит только специальные символы
+
+    # Telegram file ID содержит только base64url-подобные символы
     allowed_chars = set('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_')
     if not all(c in allowed_chars for c in file_id):
         return False
-    
-    # Обычно Telegram file ID начинается с определенных префиксов для фото
-    photo_prefixes = ['AgAC', 'BAADAgAD', 'BQADAgAD', 'CAADAgAD', 'BAAD', 'BQAD', 'CAAD']
-    if not any(file_id.startswith(prefix) for prefix in photo_prefixes):
-        return False
-    
+
     return True
 
-# Вспомогательные функции для работы с медиа-файлами
-async def send_media_by_type(chat_id, file_id, caption=None, reply_markup=None, parse_mode="HTML"):
-    """Отправляет медиа-файл, автоматически определяя его тип (фото, анимация или видео)"""
+
+def extract_media_file_id(message: types.Message):
+    """Извлекает file_id и тип медиа из сообщения (фото, GIF, видео, документ).
+
+    :return: (file_id, media_type) или (None, None)
+    """
+    if not message:
+        return None, None
+    if getattr(message, 'photo', None):
+        return message.photo[-1].file_id, 'photo'
+    if getattr(message, 'animation', None):
+        return message.animation.file_id, 'animation'
+    if getattr(message, 'video', None):
+        return message.video.file_id, 'video'
+    if getattr(message, 'document', None):
+        return message.document.file_id, 'document'
+    return None, None
+
+# Типы контента сообщений, которые считаются медиа-обложками (фото, GIF, видео, документ)
+COVER_CONTENT_TYPES = [
+    types.ContentType.PHOTO,
+    types.ContentType.ANIMATION,
+    types.ContentType.VIDEO,
+    types.ContentType.DOCUMENT,
+]
+
+
+# Кэш определённого типа медиа: file_id -> 'photo' | 'animation' | 'video' | 'document'
+# Нужен, чтобы не перебирать методы заново при каждом открытии раздела.
+MEDIA_TYPE_CACHE = {}
+
+# Поддерживаемые типы медиа и порядок перебора (от самого частого к редкому)
+MEDIA_TYPE_ORDER = ("photo", "animation", "video", "document")
+
+
+async def send_media_auto(chat_id, file_id, caption=None, reply_markup=None,
+                          parse_mode="HTML", allow_document=True, bot_instance=None):
+    """Отправляет медиа ЛЮБОГО типа в чат: фото, GIF, видео или документ.
+
+    Зачем: обложкой раздела (тема/категория/подкатегория/товар) может быть не только
+    фото — админ может загрузить GIF или MP4, и тогда их file_id лежит в том же поле
+    photo_id. Раньше во всех разделах каталога жёстко вызывался send_photo, Telegram
+    отвечал «wrong file identifier/HTTP URL specified», и раздел не открывался.
+
+    Тип определяется перебором методов и ЗАПОМИНАЕТСЯ в MEDIA_TYPE_CACHE, поэтому
+    повторные открытия не тратят запросы на заведомо неудачные попытки.
+
+    :return: (message | None, media_type | None)
+    """
     if not file_id:
-        return None
-        
-    try:
-        # Пытаемся отправить как фото
+        return None, None
+
+    target = bot_instance or bot
+
+    # Сначала пробуем уже известный тип, затем остальные
+    order = []
+    known = MEDIA_TYPE_CACHE.get(file_id)
+    if known:
+        order.append(known)
+    for candidate in MEDIA_TYPE_ORDER:
+        if candidate not in order:
+            order.append(candidate)
+    if not allow_document:
+        order = [m for m in order if m != "document"]
+
+    senders = {
+        "photo": lambda media: target.send_photo(
+            chat_id=chat_id, photo=media, caption=caption,
+            reply_markup=reply_markup, parse_mode=parse_mode),
+        "animation": lambda media: target.send_animation(
+            chat_id=chat_id, animation=media, caption=caption,
+            reply_markup=reply_markup, parse_mode=parse_mode),
+        "video": lambda media: target.send_video(
+            chat_id=chat_id, video=media, caption=caption,
+            reply_markup=reply_markup, parse_mode=parse_mode),
+        "document": lambda media: target.send_document(
+            chat_id=chat_id, document=media, caption=caption,
+            reply_markup=reply_markup, parse_mode=parse_mode),
+    }
+
+    last_error = None
+    for media_type in order:
         try:
-            return await bot.send_photo(
-                chat_id=chat_id,
-                photo=file_id,
-                caption=caption,
-                reply_markup=reply_markup,
-                parse_mode=parse_mode
-            )
-        except:
-            # Если фото не работает, пробуем как анимацию
-            try:
-                return await bot.send_animation(
-                    chat_id=chat_id,
-                    animation=file_id,
-                    caption=caption,
-                    reply_markup=reply_markup,
-                    parse_mode=parse_mode
-                )
-            except:
-                # Если анимация не работает, пробуем как видео
-                return await bot.send_video(
-                    chat_id=chat_id,
-                    video=file_id,
-                    caption=caption,
-                    reply_markup=reply_markup,
-                    parse_mode=parse_mode
-                )
-    except Exception as e:
-        print(f"Error sending media {file_id}: {e}")
-        return None
+            sent_message = await senders[media_type](file_id)
+            MEDIA_TYPE_CACHE[file_id] = media_type
+            return sent_message, media_type
+        except Exception as e:
+            last_error = e
+            # Тип определён неверно (например, кэш устарел) — забываем его
+            if MEDIA_TYPE_CACHE.get(file_id) == media_type:
+                MEDIA_TYPE_CACHE.pop(file_id, None)
+            continue
+
+    print(f"⚠️ Не удалось отправить медиа {str(file_id)[:20]}... ни одним способом: {last_error}")
+    return None, None
+
+
+async def answer_media_auto(message, file_id, caption=None, reply_markup=None,
+                            parse_mode="HTML", allow_document=True):
+    """Отвечает медиа любого типа (фото / GIF / видео / документ).
+
+    :return: (message | None, media_type | None)
+    """
+    if not file_id:
+        return None, None
+
+    order = []
+    known = MEDIA_TYPE_CACHE.get(file_id)
+    if known:
+        order.append(known)
+    for candidate in MEDIA_TYPE_ORDER:
+        if candidate not in order:
+            order.append(candidate)
+    if not allow_document:
+        order = [m for m in order if m != "document"]
+
+    senders = {
+        "photo": lambda media: message.answer_photo(
+            photo=media, caption=caption,
+            reply_markup=reply_markup, parse_mode=parse_mode),
+        "animation": lambda media: message.answer_animation(
+            animation=media, caption=caption,
+            reply_markup=reply_markup, parse_mode=parse_mode),
+        "video": lambda media: message.answer_video(
+            video=media, caption=caption,
+            reply_markup=reply_markup, parse_mode=parse_mode),
+        "document": lambda media: message.answer_document(
+            document=media, caption=caption,
+            reply_markup=reply_markup, parse_mode=parse_mode),
+    }
+
+    last_error = None
+    for media_type in order:
+        try:
+            sent_message = await senders[media_type](file_id)
+            MEDIA_TYPE_CACHE[file_id] = media_type
+            return sent_message, media_type
+        except Exception as e:
+            last_error = e
+            if MEDIA_TYPE_CACHE.get(file_id) == media_type:
+                MEDIA_TYPE_CACHE.pop(file_id, None)
+            continue
+
+    print(f"⚠️ Не удалось отправить медиа {str(file_id)[:20]}... ни одним способом: {last_error}")
+    return None, None
+
+
+async def send_media_by_type(chat_id, file_id, caption=None, reply_markup=None, parse_mode="HTML"):
+    """Обёртка для обратной совместимости (см. send_media_auto)."""
+    sent_message, _ = await send_media_auto(
+        chat_id, file_id, caption=caption, reply_markup=reply_markup,
+        parse_mode=parse_mode)
+    return sent_message
 
 async def answer_media_by_type(message, file_id, caption=None, reply_markup=None, parse_mode="HTML"):
-    """Отвечает медиа-файлом, автоматически определяя его тип (фото, анимация или видео)"""
-    if not file_id:
-        return None
-        
-    try:
-        # Пытаемся отправить как фото
-        try:
-            return await message.answer_photo(
-                photo=file_id,
-                caption=caption,
-                reply_markup=reply_markup,
-                parse_mode=parse_mode
-            )
-        except:
-            # Если фото не работает, пробуем как анимацию
-            try:
-                return await message.answer_animation(
-                    animation=file_id,
-                    caption=caption,
-                    reply_markup=reply_markup,
-                    parse_mode=parse_mode
-                )
-            except:
-                # Если анимация не работает, пробуем как видео
-                return await message.answer_video(
-                    video=file_id,
-                    caption=caption,
-                    reply_markup=reply_markup,
-                    parse_mode=parse_mode
-                )
-    except Exception as e:
-        print(f"Error answering media {file_id}: {e}")
-        return None
+    """Обёртка для обратной совместимости (см. answer_media_auto)."""
+    sent_message, _ = await answer_media_auto(
+        message, file_id, caption=caption, reply_markup=reply_markup,
+        parse_mode=parse_mode)
+    return sent_message
 
 
 # Глобальная функция для получения реквизитов из БД
@@ -619,6 +707,91 @@ bot = Bot(token=cfg.BOT_TOKEN)
 init_bot(bot)  # Инициализируем глобальную переменную bot в models.py
 storage = MemoryStorage()
 dp = Dispatcher(bot, storage=storage)
+
+# КРИТИЧНО ДЛЯ ИНЛАЙН-КНОПОК.
+# Telegram запоминает список allowed_updates на своей стороне и использует его,
+# если polling-запрос не передаёт allowed_updates явно. Если в сохранённом списке
+# нет "callback_query", нажатия инлайн-кнопок вообще не доходят до бота — при этом
+# сообщения и /start продолжают работать. Поэтому список задаём явно, а при
+# старте принудительно перезаписываем его на стороне Telegram.
+ALLOWED_UPDATES = [
+    "message",
+    "edited_message",
+    "channel_post",
+    "edited_channel_post",
+    "inline_query",
+    "chosen_inline_result",
+    "callback_query",
+    "shipping_query",
+    "pre_checkout_query",
+    "poll",
+    "poll_answer",
+    "my_chat_member",
+    "chat_member",
+    "chat_join_request",
+]
+
+
+async def reset_allowed_updates() -> str:
+    """Перезаписывает sticky-настройку allowed_updates на стороне Telegram.
+
+    Возвращает текст статуса для лога/отчёта о запуске.
+    """
+    try:
+        updates = await bot.get_updates(timeout=0, allowed_updates=ALLOWED_UPDATES)
+        if updates:
+            # подтверждаем полученные апдейты, чтобы они не обработались дважды
+            await bot.get_updates(
+                offset=updates[-1].update_id + 1,
+                timeout=0,
+                allowed_updates=ALLOWED_UPDATES,
+            )
+        msg = "✅ allowed_updates сброшены (callback_query разрешён)"
+    except Exception as e:
+        msg = f"⚠️ Не удалось сбросить allowed_updates: {e}"
+    print(msg)
+    return msg
+
+
+# FSM-состояния, для которых зарегистрированы отдельные message-хендлеры.
+# Заполняется функцией collect_fsm_message_states() в конце файла, когда все
+# хендлеры уже объявлены.
+# Зачем: глобальный обработчик текста handle_menu_buttons (state='*') стоит в
+# очереди раньше форм редактирования каталога/реквизитов и, поскольку aiogram
+# останавливается на первом подходящем хендлере, «съедал» введённый текст.
+# Теперь он пропускает сообщения, относящиеся к активной форме.
+FSM_STATES_WITH_MESSAGE_HANDLERS = set()
+
+
+def collect_fsm_message_states(dispatcher):
+    """Собирает состояния FSM, у которых есть message-хендлеры.
+
+    Возвращает множество строк вида "AdminCatalogEditStates:waiting_for_name".
+    """
+    from aiogram.dispatcher.filters.builtin import StateFilter
+
+    states = set()
+    registry = getattr(dispatcher, "message_handlers", None)
+    for record in getattr(registry, "handlers", []):
+        for filter_obj in (record.filters or []):
+            check = getattr(filter_obj, "filter", None)
+            if isinstance(check, StateFilter):
+                state_filter = check
+            else:
+                state_filter = getattr(check, "__self__", None)
+
+            if isinstance(state_filter, StateFilter):
+                for state_name in getattr(state_filter, "states", []):
+                    if isinstance(state_name, str) and state_name != "*":
+                        states.add(state_name)
+    return states
+
+# Логирование всех incoming updates
+@dp.errors_handler()
+async def errors_handler(update, exception):
+    print(f"🔍 Update: {update}")
+    print(f"❌ Error: {exception}")
+    return True
 
 # Устанавливаем Menu Button для отображения кнопки "Меню" рядом со скрепкой
 async def set_menu_button():
@@ -693,21 +866,34 @@ async def set_bot_commands():
     except Exception as e:
         print(f"❌ Ошибка установки команд: {e}")
 
-def format_description_with_preview(description: str, preview_link: str = None) -> str:
-    """Форматирует описание с скрытой preview ссылкой сверху"""
+DEFAULT_SECTION_TEXT = "📂 Выберите раздел:"
+
+
+def format_description_with_preview(description: str, preview_link: str = None,
+                                   fallback: str = None) -> str:
+    """Форматирует описание с скрытой preview ссылкой сверху.
+
+    ВАЖНО: никогда не возвращает пустую строку. Telegram не принимает сообщение
+    с пустым текстом ("Bad Request: message text is empty"), и раздел каталога
+    с пустым описанием вообще не открывался — отправлялся только стикер.
+    Если описания нет, подставляется fallback (обычно название раздела).
+    """
+    text = str(description).strip() if description is not None else ""
+    if text.lower() == "none":
+        text = ""
+
+    if not text:
+        text = fallback or DEFAULT_SECTION_TEXT
+
     # Проверяем на None и строку 'None'
-    if not preview_link or preview_link == 'None' or preview_link.lower() == 'none':
-        return description or ""
-    
+    if not preview_link or str(preview_link).strip().lower() == "none":
+        return text
+
     # Создаем скрытую ссылку с невидимым символом
     hidden_link = f'<a href="{preview_link}">\u200b</a>'  # Zero Width Space
-    
-    # Если описание пустое, возвращаем только скрытую ссылку
-    if not description:
-        return hidden_link
-    
+
     # Добавляем скрытую ссылку в начало описания
-    return f"{hidden_link}{description}"
+    return f"{hidden_link}{text}"
 
 async def send_product_files(user_id: int, product_id: int, quantity: int = 1, day_period: int = None):
     """Отправляет файлы товара покупателю в соответствии с количеством и периодом дней"""
@@ -1026,7 +1212,7 @@ async def promo_command_handler(message: types.Message):
         print(f"DB Error (expected if not implemented): could not add promo code. {e}")
         await message.answer(f"❌ Ошибка при добавлении промокода. Убедитесь, что функция `add_promo_code` реализована в `database.py`.")
 
-@dp.callback_query_handler(lambda c: c.data.startswith("promo_code_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("promo_code_"), state="*")
 async def promo_code_button_handler(callback: types.CallbackQuery, state: FSMContext):
     """
     Handles the 'Have a promo code' button click.
@@ -1083,7 +1269,7 @@ async def process_promo_code_input(message: types.Message, state: FSMContext):
     # Return to product view regardless of promo validity
     await recreate_product_view(message.chat.id, original_message_id, product_id, message.from_user.id)
 
-@dp.callback_query_handler(lambda c: c.data.startswith("share_product_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("share_product_"), state="*")
 async def share_product_button_handler(callback: types.CallbackQuery):
     """
     Handles the 'Share' button click.
@@ -1123,7 +1309,7 @@ async def share_product_button_handler(callback: types.CallbackQuery):
 # This handler is crucial for the "Back" buttons to work.
 # It must replicate how products are normally shown.
 # If you have a function that shows a product, call it here.
-@dp.callback_query_handler(lambda c: c.data.startswith("show_product_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("show_product_"), state="*")
 async def show_product_from_callback(callback: types.CallbackQuery):
     product_id = int(callback.data.split("_")[2])
     product = await db.get_catalog_item(product_id)
@@ -1183,7 +1369,10 @@ async def show_product_by_id(message: types.Message, product_id: int):
     files_count = await db.get_product_files_count(product_id)
     
     # Формируем описание с скрытой preview ссылкой сверху
-    formatted_description = format_description_with_preview(product[4], product[7])
+    formatted_description = format_description_with_preview(
+        product[4], product[7],
+        fallback=f"📦 <b>{product[3]}</b>"
+    )
     
     # Добавляем информацию о цене за штуку и доступном количестве
     if price_info:
@@ -1235,14 +1424,13 @@ async def show_product_by_id(message: types.Message, product_id: int):
     keyboard.add(InlineKeyboardButton("🔙 Назад в меню", callback_data="back_to_main"))
 
     # Отправляем фото или текст с одинаковым форматированием
-    if product[6] and is_valid_telegram_file_id(product[6]):  # photo_id
-        await message.answer_photo(
-            photo=product[6],
-            caption=formatted_description,
-            parse_mode="HTML",
-            reply_markup=keyboard
+    media_message = None
+    if product[6] and is_valid_telegram_file_id(product[6]):
+        media_message, _ = await answer_media_auto(
+            message, product[6], caption=formatted_description,
+            reply_markup=keyboard, parse_mode="HTML"
         )
-    else:
+    if media_message is None:
         await message.answer(
             formatted_description,
             parse_mode="HTML",
@@ -1746,7 +1934,7 @@ async def create_cryptobot_invoice_for_order(amount: float, code: str, user_id: 
         return None
 
 
-@dp.callback_query_handler(lambda c: c.data.startswith("cryptobot_check_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("cryptobot_check_"), state="*")
 async def cryptobot_check_payment(callback: types.CallbackQuery):
     """Проверка статуса оплаты CryptoBot"""
     print(f"Проверка статуса оплаты CryptoBot: {callback.data}")
@@ -1804,7 +1992,7 @@ async def cryptobot_check_order_payment(callback: types.CallbackQuery, code: str
     await callback.answer("Проверяем статус оплаты заказа...")
 
 
-@dp.callback_query_handler(lambda c: c.data.startswith("pay_method_stars_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("pay_method_stars_"), state="*")
 async def process_stars_payment(callback: types.CallbackQuery):
     code = callback.data.split("_")[-1]
     payment = await db.get_payment(code)
@@ -1837,7 +2025,7 @@ async def process_stars_payment(callback: types.CallbackQuery):
         await callback.answer("Ошибка при создании платежа")
 
 
-@dp.callback_query_handler(lambda c: c.data.startswith("order_pay_stars_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("order_pay_stars_"), state="*")
 async def process_order_stars_payment(callback: types.CallbackQuery):
     code = callback.data.split("_")[-1]
     order = await db.get_order(code)
@@ -2130,6 +2318,7 @@ async def replace_message_with_sticker_first(callback: types.CallbackQuery, new_
     """Заменяет текущее сообщение новым контентом с ГАРАНТИРОВАННЫМ правильным порядком стикеров
     Стикер ВСЕГДА отправляется ПЕРЕД контентом, затем удаляются старые сообщения
     """
+    sticker_sent = False
     try:
         # 1. СНАЧАЛА отправляем стикер (если есть) - СТИКЕР ВСЕГДА ПЕРВЫЙ!
         if sticker_id:
@@ -2137,20 +2326,32 @@ async def replace_message_with_sticker_first(callback: types.CallbackQuery, new_
                 chat_id=callback.message.chat.id,
                 sticker=sticker_id
             )
-        
-        # 2. ЗАТЕМ отправляем новый контент
+            sticker_sent = True
+
+        text_to_send = (new_caption or new_text or "").strip() or DEFAULT_SECTION_TEXT
+
+        # 2. ЗАТЕМ отправляем новый контент.
+        # Обложкой может быть фото, GIF или видео — тип определяется автоматически,
+        # иначе раздел с GIF/MP4 не открывался (ошибка wrong file identifier).
+        media_sent = False
         if new_photo:
-            await bot.send_photo(
+            sent_message, media_type = await send_media_auto(
                 chat_id=callback.message.chat.id,
-                photo=new_photo,
-                caption=new_caption,
-                parse_mode="HTML",
-                reply_markup=new_keyboard
+                file_id=new_photo,
+                caption=text_to_send,
+                reply_markup=new_keyboard,
+                parse_mode="HTML"
             )
-        else:
+            media_sent = sent_message is not None
+            if media_sent:
+                print(f"✅ Медиа раздела отправлено как {media_type}")
+            else:
+                print(f"⚠️ Медиа {str(new_photo)[:20]}... не отправлено, показываю текст")
+
+        if not media_sent:
             await bot.send_message(
                 chat_id=callback.message.chat.id,
-                text=new_text,
+                text=text_to_send,
                 parse_mode="HTML",
                 reply_markup=new_keyboard
             )
@@ -2160,26 +2361,34 @@ async def replace_message_with_sticker_first(callback: types.CallbackQuery, new_
         
     except Exception as e:
         print(f"Ошибка при замене сообщения: {e}")
-        # В случае ошибки все равно пытаемся отправить контент
+        # В случае ошибки все равно пытаемся отправить контент,
+        # но стикер повторно НЕ отправляем (иначе получалось два стикера)
         try:
-            if sticker_id:
+            if not sticker_sent and sticker_id:
                 await bot.send_sticker(
                     chat_id=callback.message.chat.id,
                     sticker=sticker_id
                 )
             
             if new_photo:
-                await bot.send_photo(
+                sent_message, _ = await send_media_auto(
                     chat_id=callback.message.chat.id,
-                    photo=new_photo,
-                    caption=new_caption,
-                    parse_mode="HTML",
-                    reply_markup=new_keyboard
+                    file_id=new_photo,
+                    caption=new_caption or (new_text or "").strip() or DEFAULT_SECTION_TEXT,
+                    reply_markup=new_keyboard,
+                    parse_mode="HTML"
                 )
+                if sent_message is None:
+                    await bot.send_message(
+                        chat_id=callback.message.chat.id,
+                        text=(new_text or "").strip() or DEFAULT_SECTION_TEXT,
+                        parse_mode="HTML",
+                        reply_markup=new_keyboard
+                    )
             else:
                 await bot.send_message(
                     chat_id=callback.message.chat.id,
-                    text=new_text,
+                    text=(new_text or "").strip() or DEFAULT_SECTION_TEXT,
                     parse_mode="HTML",
                     reply_markup=new_keyboard
                 )
@@ -2216,22 +2425,21 @@ async def replace_message_with_new_content(callback: types.CallbackQuery, new_te
         
         # Затем редактируем текущее сообщение
         if new_photo:
-            # Если нужно изменить на фото
-            if message_to_edit.photo:
-                # Редактируем существующее фото
-                await bot.edit_message_media(
-                    chat_id=message_to_edit.chat.id,
-                    message_id=message_to_edit.message_id,
-                    media=types.InputMediaPhoto(media=new_photo, caption=new_caption, parse_mode="HTML"),
-                    reply_markup=new_keyboard
-                )
-            else:
-                # Удаляем текстовое сообщение и отправляем фото
+            try:
                 await message_to_edit.delete()
-                await bot.send_photo(
+            except Exception:
+                pass
+            sent_message, _ = await send_media_auto(
+                chat_id=message_to_edit.chat.id,
+                file_id=new_photo,
+                caption=new_caption or (new_text or "").strip() or DEFAULT_SECTION_TEXT,
+                reply_markup=new_keyboard,
+                parse_mode="HTML"
+            )
+            if sent_message is None:
+                await bot.send_message(
                     chat_id=message_to_edit.chat.id,
-                    photo=new_photo,
-                    caption=new_caption,
+                    text=(new_text or "").strip() or DEFAULT_SECTION_TEXT,
                     parse_mode="HTML",
                     reply_markup=new_keyboard
                 )
@@ -2283,17 +2491,24 @@ async def replace_message_with_new_content(callback: types.CallbackQuery, new_te
             
             # Затем отправляем новый контент
             if new_photo:
-                await bot.send_photo(
+                sent_message, _ = await send_media_auto(
                     chat_id=callback.message.chat.id,
-                    photo=new_photo,
-                    caption=new_caption,
-                    parse_mode="HTML",
-                    reply_markup=new_keyboard
+                    file_id=new_photo,
+                    caption=new_caption or (new_text or "").strip() or DEFAULT_SECTION_TEXT,
+                    reply_markup=new_keyboard,
+                    parse_mode="HTML"
                 )
+                if sent_message is None:
+                    await bot.send_message(
+                        chat_id=callback.message.chat.id,
+                        text=(new_text or "").strip() or DEFAULT_SECTION_TEXT,
+                        parse_mode="HTML",
+                        reply_markup=new_keyboard
+                    )
             else:
                 await bot.send_message(
                     chat_id=callback.message.chat.id,
-                    text=new_text,
+                    text=(new_text or "").strip() or DEFAULT_SECTION_TEXT,
                     parse_mode="HTML",
                     reply_markup=new_keyboard
                 )
@@ -2704,14 +2919,16 @@ async def send_welcome(message: types.Message):
     try:
         if welcome_sticker_id:
             try:
-                # Используем фото из БД
-                await bot.send_photo(
+                # Используем фото/GIF/видео из БД
+                sent, _ = await send_media_auto(
                     chat_id=message.chat.id,
-                    photo=welcome_photo_id,
+                    file_id=welcome_photo_id,
                     caption=welcome_text,
-                    parse_mode="HTML",
-                    reply_markup=await main_menu_kb()
+                    reply_markup=await main_menu_kb(),
+                    parse_mode="HTML"
                 )
+                if sent is None:
+                    raise RuntimeError("не удалось отправить медиа приветствия")
             except Exception as photo_error:
                 print(f"Ошибка отправки фото из БД: {photo_error}")
                 # Если фото из БД не работает, сбрасываем его и используем стандартное
@@ -2783,17 +3000,20 @@ async def _handle_catalog_button(message: types.Message):
         )
         
         # Формируем текст
-        catalog_text = ""
+        catalog_text = "🏪 <b>Каталог товаров</b>\n\nВыберите тему:"
         
-        # Отправляем каталог с фото или без
+        # Отправляем каталог с фото/GIF/видео или без
         if catalog_photo_id:
             try:
-                await message.answer_photo(
-                    photo=catalog_photo_id,
+                sent, _ = await answer_media_auto(
+                    message,
+                    catalog_photo_id,
                     caption=catalog_text,
                     reply_markup=keyboard,
                     parse_mode="HTML"
                 )
+                if sent is None:
+                    raise RuntimeError("не удалось отправить обложку каталога")
             except Exception as e:
                 # Если фото не работает, отправляем только текст
                 print(f"Ошибка отправки фото каталога: {e}")
@@ -2931,15 +3151,18 @@ async def _handle_bonus_button(message: types.Message):
         is_admin = await is_user_admin(message.from_user.id)
         keyboard = bonus_sections_list_kb(sections, is_admin=is_admin)
         
-        # Отправляем фото с описанием и кнопками
+        # Отправляем медиа с описанием и кнопками
         if bonus_photo_id:
             try:
-                await message.answer_photo(
-                    photo=bonus_photo_id,
+                sent, _ = await answer_media_auto(
+                    message,
+                    bonus_photo_id,
                     caption=bonus_description,
                     reply_markup=keyboard,
                     parse_mode="HTML"
                 )
+                if sent is None:
+                    raise RuntimeError("не удалось отправить медиа бонусов")
             except Exception as e:
                 print(f"Ошибка отправки фото бонусов: {e}")
                 await message.answer(
@@ -2961,8 +3184,8 @@ async def _handle_bonus_button(message: types.Message):
         )
 
 # Единый обработчик для всех кнопок меню
-@dp.message_handler(lambda message: message.text and not message.text.startswith('/'))
-async def handle_menu_buttons(message: types.Message):
+@dp.message_handler(lambda message: message.text and not message.text.startswith('/'), state='*')
+async def handle_menu_buttons(message: types.Message, state: FSMContext):
     """Единый обработчик для всех кнопок главного меню с динамической проверкой"""
     print(f"Menu button handler called with text: {message.text}")
     # Проверяем все кнопки меню
@@ -2984,6 +3207,20 @@ async def handle_menu_buttons(message: types.Message):
             await log_user_action(message.from_user.id, f"Нажал кнопку меню: {message.text}")
             return
     
+    # Текст не совпал ни с одной кнопкой меню.
+    # Если у пользователя активно FSM-состояние, для которого есть свой
+    # обработчик (редактирование каталога, реквизитов, названий кнопок и т.п.),
+    # НЕ перехватываем сообщение, а передаём его дальше по цепочке хендлеров.
+    try:
+        current_state = await state.get_state()
+    except Exception as e:
+        print(f"Не удалось определить текущее состояние: {e}")
+        current_state = None
+
+    if current_state and current_state in FSM_STATES_WITH_MESSAGE_HANDLERS:
+        print(f"Активна форма '{current_state}' — передаём ввод её обработчику")
+        raise SkipHandler()
+
     print(f"No button matched, forwarding to admins")
     # Если это не кнопка меню, пересылаем сообщение админам
     await forward_user_message_to_admins(message)
@@ -3037,7 +3274,7 @@ async def log_user_action(user_id: int, action: str):
         print(f"Ошибка при логировании действия: {e}")
 
 
-@dp.callback_query_handler(lambda c: c.data.startswith("confirm_payment_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("confirm_payment_"), state="*")
 async def confirm_payment_handler(callback: types.CallbackQuery):
     code = callback.data.split("_")[-1]
     payment = await db.get_payment(code)
@@ -3114,7 +3351,7 @@ async def confirm_payment_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("confirm_order_payment_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("confirm_order_payment_"), state="*")
 async def confirm_order_payment_handler(callback: types.CallbackQuery):
     """Обработчик подтверждения оплаты заказа"""
     try:
@@ -3227,7 +3464,7 @@ async def confirm_order_payment_handler(callback: types.CallbackQuery):
         await callback.answer(f"Ошибка: {e}")
 
 # Обработчики для админа - подтверждение и отклонение заказов
-@dp.callback_query_handler(lambda c: c.data.startswith("admin_confirm_order_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("admin_confirm_order_"), state="*")
 async def admin_confirm_order_handler(callback: types.CallbackQuery):
     """Обработчик подтверждения заказа админом"""
     if not await is_user_admin(callback.from_user.id):
@@ -3266,7 +3503,7 @@ async def admin_confirm_order_handler(callback: types.CallbackQuery):
         print(f"Error in admin_confirm_order_handler: {e}")
         await callback.answer(f"Ошибка: {e}")
 
-@dp.callback_query_handler(lambda c: c.data.startswith("admin_reject_order_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("admin_reject_order_"), state="*")
 async def admin_reject_order_handler(callback: types.CallbackQuery):
     """Обработчик отклонения заказа админом"""
     if not await is_user_admin(callback.from_user.id):
@@ -3291,7 +3528,7 @@ async def admin_reject_order_handler(callback: types.CallbackQuery):
         await callback.answer(f"Ошибка: {e}")
 
 # Заглушки для недоступных методов оплаты
-@dp.callback_query_handler(lambda c: (c.data.startswith("pay_method_sbp_") or c.data.startswith("order_pay_sbp_") or c.data.startswith("pay_method_qr_") or c.data.startswith("order_pay_qr_")) and "_phone_" not in c.data)
+@dp.callback_query_handler(lambda c: (c.data.startswith("pay_method_sbp_") or c.data.startswith("order_pay_sbp_") or c.data.startswith("pay_method_qr_") or c.data.startswith("order_pay_qr_")) and "_phone_" not in c.data, state="*")
 async def sbp_qr_stub_handler(callback: types.CallbackQuery):
     """Заглушка для СБП-QR (но не для phone!)"""
     await callback.answer(
@@ -3299,7 +3536,7 @@ async def sbp_qr_stub_handler(callback: types.CallbackQuery):
         show_alert=True
     )
 
-@dp.callback_query_handler(lambda c: c.data.startswith("pay_method_skins_") or c.data.startswith("order_pay_skins_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("pay_method_skins_") or c.data.startswith("order_pay_skins_"), state="*")
 async def skins_stub_handler(callback: types.CallbackQuery):
     """Заглушка для скинов"""
     await callback.answer(
@@ -3307,7 +3544,7 @@ async def skins_stub_handler(callback: types.CallbackQuery):
         show_alert=True
     )
 
-@dp.callback_query_handler(lambda c: c.data.startswith("pay_method_bitpapa_") or c.data.startswith("order_pay_bitpapa_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("pay_method_bitpapa_") or c.data.startswith("order_pay_bitpapa_"), state="*")
 async def bitpapa_payment_handler(callback: types.CallbackQuery):
     """Обработчик платежей через BitPAPA (создает реальные инвойсы)"""
     try:
@@ -3456,7 +3693,7 @@ async def bitpapa_payment_handler(callback: types.CallbackQuery):
         traceback.print_exc()
         await callback.answer("❌ Произошла ошибка при создании платежа", show_alert=True)
 
-@dp.callback_query_handler(lambda c: c.data.startswith("check_bitpapa_payment_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("check_bitpapa_payment_"), state="*")
 async def check_bitpapa_payment_handler(callback: types.CallbackQuery):
     """Обработчик проверки статуса платежа BitPAPA"""
     try:
@@ -3481,7 +3718,7 @@ async def check_bitpapa_payment_handler(callback: types.CallbackQuery):
         print(f"Ошибка в check_bitpapa_payment_handler: {e}")
         await callback.answer("❌ Ошибка проверки статуса", show_alert=True)
 
-@dp.callback_query_handler(lambda c: c.data.startswith("cancel_payment_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("cancel_payment_"), state="*")
 async def cancel_payment_handler(callback: types.CallbackQuery):
     code = callback.data.split("_")[-1]
 
@@ -3565,7 +3802,7 @@ async def process_payment(message: types.Message, amount: int):
             reply_markup=await main_menu_kb()
         )
 
-@dp.callback_query_handler(lambda c: c.data == "custom_amount")
+@dp.callback_query_handler(lambda c: c.data == "custom_amount", state="*")
 async def custom_amount_handler(callback: types.CallbackQuery):
     await safe_delete_messages(callback)
     await callback.message.answer(
@@ -3576,7 +3813,7 @@ async def custom_amount_handler(callback: types.CallbackQuery):
 
 
 
-@dp.callback_query_handler(lambda c: c.data.startswith("pay_method_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("pay_method_"), state="*")
 async def process_payment_method(callback: types.CallbackQuery):
     print(f"Получен callback: {callback.data}")
     parts = callback.data.split("_")
@@ -3651,7 +3888,7 @@ async def process_payment_method(callback: types.CallbackQuery):
     await smart_cleanup_after_send(callback)
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("pay_amount_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("pay_amount_"), state="*")
 async def process_payment_amount(callback: types.CallbackQuery):
     print(f"=== НАЧАЛО ОБРАБОТКИ CALLBACK ===")
     print(f"Полный callback_data: {callback.data}")
@@ -3800,7 +4037,7 @@ async def back_to_payment_handler(callback: types.CallbackQuery, state: FSMConte
 
 
 
-@dp.callback_query_handler(lambda c: c.data == "deposit_balance")
+@dp.callback_query_handler(lambda c: c.data == "deposit_balance", state="*")
 async def deposit_from_profile(callback: types.CallbackQuery):
     try:
         await safe_delete_messages(callback)
@@ -3823,7 +4060,7 @@ async def deposit_from_profile(callback: types.CallbackQuery):
         )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("admin_approve_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("admin_approve_"), state="*")
 async def admin_approve_payment(callback: types.CallbackQuery):
     parts = callback.data.split("_")
     code = parts[2]
@@ -3899,7 +4136,7 @@ async def admin_approve_payment(callback: types.CallbackQuery):
             print(f"Ошибка подтверждения платежа: {e}")
             await callback.answer("❌ Ошибка при пополнении")
 
-@dp.callback_query_handler(lambda c: c.data.startswith("admin_reject_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("admin_reject_"), state="*")
 async def admin_reject_payment(callback: types.CallbackQuery):
     code = callback.data.split("_")[-1]
 
@@ -3917,12 +4154,12 @@ async def admin_reject_payment(callback: types.CallbackQuery):
 
     await callback.answer("Платеж отклонен")
 
-@dp.callback_query_handler(lambda c: c.data == "my_orders")
+@dp.callback_query_handler(lambda c: c.data == "my_orders", state="*")
 async def show_orders(callback: types.CallbackQuery):
     """Показывает заказы пользователя с пагинацией"""
     await show_user_orders(callback, page=0)
 
-@dp.callback_query_handler(lambda c: c.data.startswith("orders_page_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("orders_page_"), state="*")
 async def orders_pagination_handler(callback: types.CallbackQuery):
     """Обработчик пагинации заказов пользователя"""
     try:
@@ -3935,7 +4172,7 @@ async def orders_pagination_handler(callback: types.CallbackQuery):
         print(f"Unexpected error in orders_pagination_handler: {e}")
         await callback.answer(f"Ошибка: {e}")
 
-@dp.callback_query_handler(lambda c: c.data.startswith("view_order_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("view_order_"), state="*")
 async def view_order_details(callback: types.CallbackQuery):
     """Обработчик просмотра деталей заказа"""
     try:
@@ -4061,7 +4298,7 @@ async def view_order_details(callback: types.CallbackQuery):
         print(f"Error in view_order_details: {e}")
         await callback.answer(f"Ошибка: {e}")
 
-@dp.callback_query_handler(lambda c: c.data.startswith("pay_order_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("pay_order_"), state="*")
 async def pay_order_handler(callback: types.CallbackQuery):
     """Обработчик оплаты заказа"""
     try:
@@ -4105,7 +4342,7 @@ async def pay_order_handler(callback: types.CallbackQuery):
         print(f"Error in pay_order_handler: {e}")
         await callback.answer(f"Ошибка: {e}")
 
-@dp.callback_query_handler(lambda c: c.data.startswith("cancel_order_from_orders_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("cancel_order_from_orders_"), state="*")
 async def cancel_order_from_orders_handler(callback: types.CallbackQuery):
     """Обработчик отмены заказа из списка заказов с подтверждением"""
     try:
@@ -4199,7 +4436,7 @@ async def show_user_orders(callback: types.CallbackQuery, page: int = 0, edit_me
     await callback.answer()
 
 
-@dp.callback_query_handler(lambda c: c.data == "referral_program")
+@dp.callback_query_handler(lambda c: c.data == "referral_program", state="*")
 async def show_referral_program(callback: types.CallbackQuery):
     user_id = callback.from_user.id
     referral_link = f"https://t.me/streetsoftkatalogbot?start={user_id}"
@@ -4235,7 +4472,7 @@ async def show_referral_program(callback: types.CallbackQuery):
 #     # Не обрабатываем, просто логируем
 #     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "withdraw_funds")
+@dp.callback_query_handler(lambda c: c.data == "withdraw_funds", state="*")
 async def withdraw_funds(callback: types.CallbackQuery):
     # Сначала отправляем новый контент
     try:
@@ -4256,7 +4493,7 @@ async def withdraw_funds(callback: types.CallbackQuery):
     await callback.answer()
 
 
-@dp.callback_query_handler(lambda c: c.data == "withdraw_to_balance")
+@dp.callback_query_handler(lambda c: c.data == "withdraw_to_balance", state="*")
 async def withdraw_to_balance(callback: types.CallbackQuery):
     user_balance = 0  # Здесь должна быть реальная проверка баланса из БД
 
@@ -4359,7 +4596,7 @@ async def back_to_contact(callback: types.CallbackQuery, state: FSMContext):
     await smart_cleanup_after_send(callback)
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "create_ticket")
+@dp.callback_query_handler(lambda c: c.data == "create_ticket", state="*")
 async def create_ticket(callback: types.CallbackQuery):
     # Сначала отправляем новый контент
     await send_support_sticker(callback.message.chat.id)
@@ -4373,7 +4610,7 @@ async def create_ticket(callback: types.CallbackQuery):
     await callback.answer()
 
 
-@dp.callback_query_handler(lambda c: c.data == "my_tickets")
+@dp.callback_query_handler(lambda c: c.data == "my_tickets", state="*")
 async def show_my_tickets(callback: types.CallbackQuery):
     try:
         tickets = await db.get_user_tickets(callback.from_user.id)
@@ -4406,7 +4643,7 @@ async def show_my_tickets(callback: types.CallbackQuery):
     await callback.answer()
 
 
-@dp.callback_query_handler(lambda c: c.data.startswith("view_ticket_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("view_ticket_"), state="*")
 async def view_ticket_details(callback: types.CallbackQuery):
     try:
         ticket_id = int(callback.data.split("_")[-1])
@@ -4508,7 +4745,7 @@ async def back_to_topics(callback: types.CallbackQuery, state: FSMContext):
         await callback.answer("Произошла ошибка, попробуйте ещё раз")
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("support_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("support_"), state="*")
 async def handle_support_topic(callback: types.CallbackQuery, state: FSMContext):
     topic = callback.data.split("_")[1]
     topic_names = {
@@ -4602,15 +4839,15 @@ async def handle_support_message(message: types.Message, state: FSMContext):
 
     await state.finish()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("view_theme_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("view_theme_"), state="*")
 async def view_theme_handler(callback: types.CallbackQuery):
     """Обработчик просмотра темы"""
-    print(f"view_theme_handler called with data: {callback.data}")
+    print(f"🔍 view_theme_handler called with data: {callback.data} from user {callback.from_user.id}")
     try:
         theme_id = int(callback.data.split("_")[2])
-        print(f"Extracted theme_id: {theme_id}")
+        print(f"🔍 Extracted theme_id: {theme_id}")
         theme = await db.get_catalog_item(theme_id)
-        print(f"Got theme: {theme}")
+        print(f"🔍 Got theme: {theme}")
         
         if not theme:
             print("Theme not found")
@@ -4622,7 +4859,10 @@ async def view_theme_handler(callback: types.CallbackQuery):
         print(f"Got {len(children)} children")
         
         # Формируем описание с preview_link
-        description = format_description_with_preview(theme[4], theme[7])
+        description = format_description_with_preview(
+            theme[4], theme[7],
+            fallback=f"🏪 <b>{theme[3]}</b>\n\nВыберите категорию:"
+        )
         
         # Создаём клавиатуру
         keyboard = await create_catalog_keyboard(children, is_admin=await is_user_admin(callback.from_user.id), parent_id=theme_id, item_type='theme')
@@ -4646,14 +4886,17 @@ async def view_theme_handler(callback: types.CallbackQuery):
             if theme[5]:  # sticker_id
                 await callback.message.answer_sticker(theme[5])
             
-            if theme[6]:  # photo_id
-                await callback.message.answer_photo(
-                    photo=theme[6],
+            media_sent = False
+            if theme[6]:  # photo_id / GIF / video
+                sent, _ = await answer_media_auto(
+                    callback.message,
+                    theme[6],
                     caption=description,
-                    parse_mode="HTML",
-                    reply_markup=keyboard
+                    reply_markup=keyboard,
+                    parse_mode="HTML"
                 )
-            else:
+                media_sent = sent is not None
+            if not media_sent:
                 await callback.message.answer(
                     text=description,
                     parse_mode="HTML",
@@ -4673,12 +4916,15 @@ async def view_theme_handler(callback: types.CallbackQuery):
     except Exception as e:
         await callback.answer(f"Ошибка: {e}")
 
-@dp.callback_query_handler(lambda c: c.data.startswith("view_category_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("view_category_"), state="*")
 async def view_category_handler(callback: types.CallbackQuery):
     """Обработчик просмотра категории"""
+    print(f"🔍 view_category_handler called with data: {callback.data} from user {callback.from_user.id}")
     try:
         category_id = int(callback.data.split("_")[2])
+        print(f"🔍 Extracted category_id: {category_id}")
         category = await db.get_catalog_item(category_id)
+        print(f"🔍 Got category: {category}")
         
         if not category:
             await callback.answer("Категория не найдена")
@@ -4699,7 +4945,10 @@ async def view_category_handler(callback: types.CallbackQuery):
         set_user_page_state(callback.from_user.id, category_id, current_page)
         
         # Формируем описание с preview_link
-        description = format_description_with_preview(category[4], category[7])
+        description = format_description_with_preview(
+            category[4], category[7],
+            fallback=f"📂 <b>{category[3]}</b>\n\nВыберите раздел:"
+        )
         
         # Проверяем, использует ли категория 3x6 сетку
         is_grid_3x6 = category[13] if len(category) > 13 else False
@@ -4734,7 +4983,7 @@ async def view_category_handler(callback: types.CallbackQuery):
     except Exception as e:
         await callback.answer(f"Ошибка: {e}")
 
-@dp.callback_query_handler(lambda c: c.data.startswith("view_subcategory_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("view_subcategory_"), state="*")
 async def view_subcategory_handler(callback: types.CallbackQuery):
     """Обработчик просмотра подкатегории"""
     try:
@@ -4760,7 +5009,10 @@ async def view_subcategory_handler(callback: types.CallbackQuery):
         set_user_page_state(callback.from_user.id, subcategory_id, current_page)
         
         # Формируем описание с preview_link
-        description = format_description_with_preview(subcategory[4], subcategory[7])
+        description = format_description_with_preview(
+            subcategory[4], subcategory[7],
+            fallback=f"📂 <b>{subcategory[3]}</b>\n\nВыберите товар:"
+        )
         
         # Проверяем, использует ли родительская категория 3x6 сетку
         parent_category = await db.get_catalog_item(subcategory[1])  # parent_id
@@ -4830,7 +5082,10 @@ async def view_product_handler(callback: types.CallbackQuery, state: FSMContext)
         files_count = await db.get_product_files_count(product_id)
         
         # Формируем описание с скрытой preview ссылкой сверху
-        formatted_description = format_description_with_preview(product[4], product[7])
+        formatted_description = format_description_with_preview(
+            product[4], product[7],
+            fallback=f"📦 <b>{product[3]}</b>"
+        )
         
         # Добавляем информацию о цене за штуку и доступном количестве
         if price_info:
@@ -4990,7 +5245,7 @@ async def view_product_handler(callback: types.CallbackQuery, state: FSMContext)
         print(f"Error in view_product_handler: {e}")
         await callback.answer(f"Ошибка: {e}")
         
-@dp.callback_query_handler(lambda c: c.data.startswith("promo_code_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("promo_code_"), state="*")
 async def promo_code_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик для ввода промокода"""
     try:
@@ -5290,16 +5545,18 @@ async def admin_edit_product_photo_start(callback: types.CallbackQuery, state: F
         await state.update_data(edit_product_id=product_id)
         message_text = f"🖼 <b>Текущее состояние:</b> {current_photo_status}\n\n🖼 Пришлите новое фото товара (как фото):"
         
-        # Отправляем текущее фото если оно есть
+        # Отправляем текущее медиа если оно есть
         if product and product[6]:
             try:
-                await bot.send_photo(
+                sent, _ = await send_media_auto(
                     chat_id=callback.message.chat.id,
-                    photo=product[6],
+                    file_id=product[6],
                     caption=message_text,
-                    parse_mode='HTML',
-                    reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_product_{product_id}"))
+                    reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_product_{product_id}")),
+                    parse_mode='HTML'
                 )
+                if sent is None:
+                    raise RuntimeError("не удалось отправить превью товара")
             except Exception as e:
                 print(f"Error sending current photo: {e}")
                 await bot.send_message(
@@ -5323,7 +5580,7 @@ async def admin_edit_product_photo_start(callback: types.CallbackQuery, state: F
         await callback.answer("Ошибка")
 
 
-@dp.message_handler(state=AdminProductEditStates.waiting_for_photo, content_types=types.ContentTypes.PHOTO)
+@dp.message_handler(state=AdminProductEditStates.waiting_for_photo, content_types=COVER_CONTENT_TYPES)
 async def admin_edit_product_photo_save(message: types.Message, state: FSMContext):
     try:
         data = await state.get_data()
@@ -5332,9 +5589,14 @@ async def admin_edit_product_photo_save(message: types.Message, state: FSMContex
             await state.finish()
             return
         try:
-            file_id = message.photo[-1].file_id
+            file_id, media_type = extract_media_file_id(message)
+            if not file_id or not is_valid_telegram_file_id(file_id):
+                await message.answer("❌ Ошибка: отправьте фото, GIF или видео.")
+                return
+            if media_type:
+                MEDIA_TYPE_CACHE[file_id] = media_type
             await db.update_product_photo_id(product_id, file_id)
-            await message.answer("✅ Фото обновлено")
+            await message.answer("✅ Обложка товара обновлена")
         except Exception as e:
             print(f"Error updating photo: {e}")
             await message.answer("❌ Ошибка при обновлении фото")
@@ -6149,16 +6411,18 @@ async def admin_edit_category_photo_start(callback: types.CallbackQuery, state: 
         await state.update_data(edit_item_id=category_id, edit_item_type='category')
         message_text = f"🖼 <b>Текущее состояние:</b> {current_photo_status}\n\n🖼 Пришлите новое фото категории (как фото):"
         
-        # Отправляем текущее фото если оно есть
+        # Отправляем текущее медиа если оно есть
         if category and category[6]:
             try:
-                await bot.send_photo(
+                sent, _ = await send_media_auto(
                     chat_id=callback.message.chat.id,
-                    photo=category[6],
+                    file_id=category[6],
                     caption=message_text,
-                    parse_mode='HTML',
-                    reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_category_{category_id}"))
+                    reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_category_{category_id}")),
+                    parse_mode='HTML'
                 )
+                if sent is None:
+                    raise RuntimeError("не удалось отправить превью категории")
             except Exception as e:
                 print(f"Error sending current photo: {e}")
                 await bot.send_message(
@@ -6276,16 +6540,18 @@ async def admin_edit_theme_photo_start(callback: types.CallbackQuery, state: FSM
         await state.update_data(edit_item_id=theme_id, edit_item_type='theme')
         message_text = f"🖼 <b>Текущее состояние:</b> {current_photo_status}\n\n🖼 Пришлите новое фото темы (как фото):"
         
-        # Отправляем текущее фото если оно есть
+        # Отправляем текущее медиа если оно есть
         if theme and theme[6]:
             try:
-                await bot.send_photo(
+                sent, _ = await send_media_auto(
                     chat_id=callback.message.chat.id,
-                    photo=theme[6],
+                    file_id=theme[6],
                     caption=message_text,
-                    parse_mode='HTML',
-                    reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_theme_{theme_id}"))
+                    reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_theme_{theme_id}")),
+                    parse_mode='HTML'
                 )
+                if sent is None:
+                    raise RuntimeError("не удалось отправить превью темы")
             except Exception as e:
                 print(f"Error sending current photo: {e}")
                 await bot.send_message(
@@ -6404,16 +6670,18 @@ async def admin_edit_subcategory_photo_start(callback: types.CallbackQuery, stat
         await state.update_data(edit_item_id=subcategory_id, edit_item_type='subcategory')
         message_text = f"🖼 <b>Текущее состояние:</b> {current_photo_status}\n\n🖼 Пришлите новое фото подкатегории (как фото):"
         
-        # Отправляем текущее фото если оно есть
+        # Отправляем текущее медиа если оно есть
         if subcategory and subcategory[6]:
             try:
-                await bot.send_photo(
+                sent, _ = await send_media_auto(
                     chat_id=callback.message.chat.id,
-                    photo=subcategory[6],
+                    file_id=subcategory[6],
                     caption=message_text,
-                    parse_mode='HTML',
-                    reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_subcategory_{subcategory_id}"))
+                    reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_subcategory_{subcategory_id}")),
+                    parse_mode='HTML'
                 )
+                if sent is None:
+                    raise RuntimeError("не удалось отправить превью подкатегории")
             except Exception as e:
                 print(f"Error sending current photo: {e}")
                 await bot.send_message(
@@ -6515,7 +6783,7 @@ async def admin_edit_subcategory_preview_start(callback: types.CallbackQuery, st
         await callback.answer("Ошибка")
 
 # Обработчики сохранения фото, стикера и превью-ссылки
-@dp.message_handler(state=AdminCatalogEditStates.waiting_for_photo, content_types=types.ContentTypes.PHOTO)
+@dp.message_handler(state=AdminCatalogEditStates.waiting_for_photo, content_types=COVER_CONTENT_TYPES)
 async def admin_edit_catalog_photo_save(message: types.Message, state: FSMContext):
     try:
         data = await state.get_data()
@@ -6525,9 +6793,14 @@ async def admin_edit_catalog_photo_save(message: types.Message, state: FSMContex
             await state.finish()
             return
         try:
-            file_id = message.photo[-1].file_id
+            file_id, media_type = extract_media_file_id(message)
+            if not file_id or not is_valid_telegram_file_id(file_id):
+                await message.answer("❌ Ошибка: отправьте фото, GIF или видео.")
+                return
+            if media_type:
+                MEDIA_TYPE_CACHE[file_id] = media_type
             await db.update_catalog_item_photo_id(item_id, file_id)
-            await message.answer("✅ Фото обновлено")
+            await message.answer("✅ Обложка раздела обновлена")
         except Exception as e:
             print(f"Error updating photo: {e}")
             await message.answer("❌ Ошибка при обновлении фото")
@@ -6730,22 +7003,27 @@ async def recreate_category_view(chat_id, message_id, category_id, user_id=None)
         children = await db.get_catalog_children(category_id)
         
         # Формируем описание с preview_link
-        description = format_description_with_preview(category[4], category[7])
+        description = format_description_with_preview(
+            category[4], category[7],
+            fallback=f"📂 <b>{category[3]}</b>\n\nВыберите раздел:"
+        )
         
         # Создаём клавиатуру
         from keyboards import create_catalog_keyboard
         keyboard = await create_catalog_keyboard(children, is_admin=await is_user_admin(user_id) if user_id else False, parent_id=category_id, item_type='category')
         
         # Отправляем обновленное сообщение
-        if category[6]:  # photo_id
-            await bot.send_photo(
+        media_sent = False
+        if category[6]:
+            sent, _ = await send_media_auto(
                 chat_id=chat_id,
-                photo=category[6],
+                file_id=category[6],
                 caption=description,
                 parse_mode="HTML",
                 reply_markup=keyboard
             )
-        else:
+            media_sent = sent is not None
+        if not media_sent:
             await bot.send_message(
                 chat_id=chat_id,
                 text=description,
@@ -6767,7 +7045,10 @@ async def recreate_theme_view(chat_id, message_id, theme_id, user_id=None):
         children = await db.get_catalog_children(theme_id)
         
         # Формируем описание с preview_link
-        description = format_description_with_preview(theme[4], theme[7])
+        description = format_description_with_preview(
+            theme[4], theme[7],
+            fallback=f"🏪 <b>{theme[3]}</b>\n\nВыберите категорию:"
+        )
         
         # Создаём клавиатуру
         from keyboards import create_catalog_keyboard
@@ -6778,15 +7059,17 @@ async def recreate_theme_view(chat_id, message_id, theme_id, user_id=None):
             await bot.send_sticker(chat_id, theme[5])
         
         # Отправляем обновленное сообщение
-        if theme[6]:  # photo_id
-            await bot.send_photo(
+        media_sent = False
+        if theme[6]:
+            sent, _ = await send_media_auto(
                 chat_id=chat_id,
-                photo=theme[6],
+                file_id=theme[6],
                 caption=description,
                 parse_mode="HTML",
                 reply_markup=keyboard
             )
-        else:
+            media_sent = sent is not None
+        if not media_sent:
             await bot.send_message(
                 chat_id=chat_id,
                 text=description,
@@ -6808,22 +7091,27 @@ async def recreate_subcategory_view(chat_id, message_id, subcategory_id, user_id
         children = await db.get_catalog_children(subcategory_id)
         
         # Формируем описание с preview_link
-        description = format_description_with_preview(subcategory[4], subcategory[7])
+        description = format_description_with_preview(
+            subcategory[4], subcategory[7],
+            fallback=f"📂 <b>{subcategory[3]}</b>\n\nВыберите товар:"
+        )
         
         # Создаём клавиатуру
         from keyboards import create_catalog_keyboard
         keyboard = await create_catalog_keyboard(children, is_admin=await is_user_admin(user_id) if user_id else False, parent_id=subcategory_id, item_type='subcategory')
         
         # Отправляем обновленное сообщение
-        if subcategory[6]:  # photo_id
-            await bot.send_photo(
+        media_sent = False
+        if subcategory[6]:
+            sent, _ = await send_media_auto(
                 chat_id=chat_id,
-                photo=subcategory[6],
+                file_id=subcategory[6],
                 caption=description,
                 parse_mode="HTML",
                 reply_markup=keyboard
             )
-        else:
+            media_sent = sent is not None
+        if not media_sent:
             await bot.send_message(
                 chat_id=chat_id,
                 text=description,
@@ -6869,7 +7157,10 @@ async def recreate_product_view(chat_id: int, message_id: int, product_id: int, 
                 print(f"Error sending sticker: {e}")
         
         # Формируем описание с скрытой preview ссылкой сверху
-        formatted_description = format_description_with_preview(product[4], product[7])
+        formatted_description = format_description_with_preview(
+            product[4], product[7],
+            fallback=f"📦 <b>{product[3]}</b>"
+        )
         
         # Добавляем информацию о цене за штуку и доступном количестве
         if price_info:
@@ -6970,12 +7261,14 @@ async def recreate_product_view(chat_id: int, message_id: int, product_id: int, 
                 keyboard.add(InlineKeyboardButton("🔙 Назад", callback_data=f"view_parent_{product[1]}_0"))
         
         # 2. ЗАТЕМ отправляем сообщение с товаром (СРАЗУ после стикера)
-        if product[6]:  # photo_id
-            await bot.send_photo(
-                chat_id=chat_id, photo=product[6],
+        media_sent = False
+        if product[6]:
+            sent, _ = await send_media_auto(
+                chat_id=chat_id, file_id=product[6],
                 caption=formatted_description, parse_mode="HTML", reply_markup=keyboard
             )
-        else:
+            media_sent = sent is not None
+        if not media_sent:
             await bot.send_message(
                 chat_id=chat_id, text=formatted_description,
                 parse_mode="HTML", reply_markup=keyboard
@@ -7043,7 +7336,7 @@ async def process_product_promo_code(message: types.Message, state: FSMContext):
         await message.answer(f"Ошибка: {e}")
         await state.finish()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("share_product_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("share_product_"), state="*")
 async def share_product_handler(callback: types.CallbackQuery):
     """Обработчик для создания ссылки на товар"""
     try:
@@ -7083,7 +7376,7 @@ async def share_product_handler(callback: types.CallbackQuery):
         print(f"Error in share_product_handler: {e}")
         await callback.answer(f"Ошибка: {e}")
 
-@dp.callback_query_handler(lambda c: c.data.startswith("buy_product_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("buy_product_"), state="*")
 async def buy_product_handler(callback: types.CallbackQuery):
     """Обработчик покупки товара"""
     try:
@@ -7252,7 +7545,7 @@ async def buy_product_handler(callback: types.CallbackQuery):
         await callback.answer(f"Ошибка: {e}")
 
 # Обработчики для кнопок выбора количества
-@dp.callback_query_handler(lambda c: c.data.startswith("qty_") and not c.data.startswith("qty_inc_days_") and not c.data.startswith("qty_dec_days_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("qty_") and not c.data.startswith("qty_inc_days_") and not c.data.startswith("qty_dec_days_"), state="*")
 async def quantity_handler(callback: types.CallbackQuery):
     """Обработчик кнопок выбора количества"""
     try:
@@ -7369,7 +7662,7 @@ async def quantity_handler(callback: types.CallbackQuery):
         print(f"Error in quantity_handler: {e}")
         await callback.answer(f"Ошибка: {e}")
         
-@dp.callback_query_handler(lambda c: c.data.startswith("order_pay_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("order_pay_"), state="*")
 async def order_payment_method_handler(callback: types.CallbackQuery):
     """Обработчик методов оплаты заказа"""
     try:
@@ -7583,7 +7876,7 @@ async def order_payment_method_handler(callback: types.CallbackQuery):
         print(f"Error in order_payment_method_handler: {e}")
         await callback.answer(f"Ошибка: {e}")
 
-@dp.callback_query_handler(lambda c: c.data.startswith("cancel_order_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("cancel_order_"), state="*")
 async def cancel_order_handler(callback: types.CallbackQuery):
     """Обработчик отмены заказа"""
     try:
@@ -7673,7 +7966,7 @@ async def back_to_order_handler(callback: types.CallbackQuery, state: FSMContext
         print(f"Error in back_to_order_handler: {e}")
         await callback.answer(f"Ошибка: {e}")
 
-@dp.callback_query_handler(lambda c: c.data.startswith("confirm_cancel_order_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("confirm_cancel_order_"), state="*")
 async def confirm_cancel_order_handler(callback: types.CallbackQuery):
     """Обработчик подтверждения отмены заказа"""
     try:
@@ -7708,7 +8001,7 @@ async def confirm_cancel_order_handler(callback: types.CallbackQuery):
         print(f"Error in confirm_cancel_order_handler: {e}")
         await callback.answer(f"Ошибка: {e}")
 
-@dp.callback_query_handler(lambda c: c.data.startswith("confirm_cancel_payment_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("confirm_cancel_payment_"), state="*")
 async def confirm_cancel_payment_handler(callback: types.CallbackQuery):
     """Обработчик подтверждения отмены платежа"""
     code = callback.data.split("_")[-1]
@@ -7730,7 +8023,7 @@ async def confirm_cancel_payment_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("view_parent_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("view_parent_"), state="*")
 async def view_parent_handler(callback: types.CallbackQuery):
     """Обработчик кнопки 'Назад'"""
     try:
@@ -7760,7 +8053,10 @@ async def view_parent_handler(callback: types.CallbackQuery):
             children = await db.get_catalog_children(parent_of_current)
             
             # Формируем описание с preview_link
-            description = format_description_with_preview(parent[4], parent[7])
+            description = format_description_with_preview(
+                parent[4], parent[7],
+                fallback=f"📂 <b>{parent[3]}</b>"
+            )
             
             # Определяем тип родительского элемента для правильной клавиатуры
             parent_type = parent[2]  # type column
@@ -7821,7 +8117,7 @@ async def view_parent_handler(callback: types.CallbackQuery):
         print(f"Error in view_parent_handler: {e}")
         await callback.answer(f"Ошибка: {e}")
 
-@dp.callback_query_handler(lambda c: c.data == "add_theme")
+@dp.callback_query_handler(lambda c: c.data == "add_theme", state="*")
 async def add_theme_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик добавления темы"""
     if not await is_user_admin(callback.from_user.id):
@@ -7843,7 +8139,7 @@ async def add_theme_handler(callback: types.CallbackQuery, state: FSMContext):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("add_category_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("add_category_"), state="*")
 async def add_category_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик добавления категории"""
     if not await is_user_admin(callback.from_user.id):
@@ -7867,7 +8163,7 @@ async def add_category_handler(callback: types.CallbackQuery, state: FSMContext)
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("add_subcategory_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("add_subcategory_"), state="*")
 async def add_subcategory_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик добавления подкатегории"""
     if not await is_user_admin(callback.from_user.id):
@@ -7884,7 +8180,7 @@ async def add_subcategory_handler(callback: types.CallbackQuery, state: FSMConte
     await callback.message.answer("Отправьте ID стикера для новой подкатегории:")
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("add_product_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("add_product_"), state="*")
 async def add_product_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик добавления товара"""
     if not await is_user_admin(callback.from_user.id):
@@ -7940,14 +8236,16 @@ async def back_to_main_handler(callback: types.CallbackQuery, state: FSMContext)
         if welcome_photo_id and is_valid_telegram_file_id(welcome_photo_id):
             # Проверяем, что ID фото валидный
             try:
-                # Используем фото из БД
-                await bot.send_photo(
+                # Используем фото/GIF/видео из БД
+                sent, _ = await send_media_auto(
                     chat_id=callback.message.chat.id,
-                    photo=welcome_photo_id,
+                    file_id=welcome_photo_id,
                     caption=welcome_text,
                     reply_markup=await main_menu_kb(),
                     parse_mode="HTML"
                 )
+                if sent is None:
+                    raise RuntimeError("не удалось отправить медиа приветствия")
             except Exception as photo_error:
                 print(f"Ошибка отправки фото из БД: {photo_error}")
                 # Если фото из БД не работает, сбрасываем его и используем стандартное
@@ -7995,7 +8293,7 @@ async def back_to_main_handler(callback: types.CallbackQuery, state: FSMContext)
     await callback.answer()
 
 # Обновим обработчик ответа админа в streetshop.py
-@dp.callback_query_handler(lambda c: c.data.startswith("admin_reply_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("admin_reply_"), state="*")
 async def admin_reply_handler(callback: types.CallbackQuery, state: FSMContext):
     parts = callback.data.split("_")
     user_id = int(parts[2])
@@ -8268,7 +8566,7 @@ async def back_to_broadcast_handler(callback: types.CallbackQuery, state: FSMCon
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "broadcast_individual_user")
+@dp.callback_query_handler(lambda c: c.data == "broadcast_individual_user", state="*")
 async def broadcast_individual_user_handler(callback: types.CallbackQuery):
     """Обработчик рассылки отдельному пользователю"""
     # Проверяем права админа
@@ -8284,7 +8582,7 @@ async def broadcast_individual_user_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "broadcast_product")
+@dp.callback_query_handler(lambda c: c.data == "broadcast_product", state="*")
 async def broadcast_product_handler(callback: types.CallbackQuery):
     """Обработчик рассылки товара"""
     # Проверяем права админа
@@ -8394,7 +8692,7 @@ async def broadcast_select_product(callback: types.CallbackQuery, state: FSMCont
         await callback.answer(f"❌ Ошибка: {e}", show_alert=True)
 
 # Обработчики редактирования товара для рассылки
-@dp.callback_query_handler(lambda c: c.data.startswith("broadcast_edit_desc_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("broadcast_edit_desc_"), state="*")
 async def broadcast_edit_description(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик редактирования описания товара для рассылки"""
     try:
@@ -8417,7 +8715,7 @@ async def broadcast_edit_description(callback: types.CallbackQuery, state: FSMCo
     except Exception as e:
         await callback.answer(f"❌ Ошибка: {e}", show_alert=True)
 
-@dp.callback_query_handler(lambda c: c.data.startswith("broadcast_edit_photo_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("broadcast_edit_photo_"), state="*")
 async def broadcast_edit_photo(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик редактирования фото товара для рассылки"""
     try:
@@ -8438,7 +8736,7 @@ async def broadcast_edit_photo(callback: types.CallbackQuery, state: FSMContext)
     except Exception as e:
         await callback.answer(f"❌ Ошибка: {e}", show_alert=True)
 
-@dp.callback_query_handler(lambda c: c.data.startswith("broadcast_edit_preview_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("broadcast_edit_preview_"), state="*")
 async def broadcast_edit_preview(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик редактирования preview ссылки товара для рассылки"""
     try:
@@ -8909,7 +9207,7 @@ async def show_broadcast_product_preview(message_or_callback, state: FSMContext,
         await state.finish()
 
 # Добавляем тестовый обработчик для отладки broadcast функциональности
-@dp.callback_query_handler(lambda c: c.data.startswith("test_broadcast_debug_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("test_broadcast_debug_"), state="*")
 async def test_broadcast_debug(callback: types.CallbackQuery):
     """Тестовый обработчик для отладки broadcast функциональности"""
     product_id = callback.data.split("_")[-1]
@@ -8917,7 +9215,7 @@ async def test_broadcast_debug(callback: types.CallbackQuery):
     await callback.answer(f"Test debug: product {product_id}", show_alert=True)
 
 # Добавляем обработчик для отладки всех callback'ов
-@dp.callback_query_handler(lambda c: c.data.startswith("broadcast_product_confirm_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("broadcast_product_confirm_"), state="*")
 async def broadcast_product_confirm_debug(callback: types.CallbackQuery):
     """Отладочный обработчик для broadcast_product_confirm"""
     print(f"DEBUG: broadcast_product_confirm handler called with data: {callback.data}")
@@ -8925,7 +9223,7 @@ async def broadcast_product_confirm_debug(callback: types.CallbackQuery):
     return await broadcast_product_confirm(callback, FSMContext)
 
 # Обработчик подтверждения рассылки товара
-@dp.callback_query_handler(lambda c: c.data.startswith("broadcast_product_confirm_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("broadcast_product_confirm_"), state="*")
 async def broadcast_product_confirm(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик подтверждения рассылки товара - немедленная рассылка всем пользователям"""
     print(f"=== BROADCAST PRODUCT CONFIRM HANDLER CALLED ===")
@@ -9064,7 +9362,7 @@ async def broadcast_product_confirm(callback: types.CallbackQuery, state: FSMCon
 #     pass
 
 # Обработчики для редактирования реквизитов
-@dp.callback_query_handler(lambda c: c.data == "edit_sbp_phone")
+@dp.callback_query_handler(lambda c: c.data == "edit_sbp_phone", state="*")
 async def edit_sbp_phone_handler(callback: types.CallbackQuery):
     # Проверяем права админа
     if not await is_user_admin(callback.from_user.id):
@@ -9078,7 +9376,7 @@ async def edit_sbp_phone_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "edit_card")
+@dp.callback_query_handler(lambda c: c.data == "edit_card", state="*")
 async def edit_card_handler(callback: types.CallbackQuery):
     # Проверяем права админа
     if not await is_user_admin(callback.from_user.id):
@@ -9092,7 +9390,7 @@ async def edit_card_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "edit_crypto")
+@dp.callback_query_handler(lambda c: c.data == "edit_crypto", state="*")
 async def edit_crypto_handler(callback: types.CallbackQuery):
     # Проверяем права админа
     if not await is_user_admin(callback.from_user.id):
@@ -9106,7 +9404,7 @@ async def edit_crypto_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "edit_stars_url")
+@dp.callback_query_handler(lambda c: c.data == "edit_stars_url", state="*")
 async def edit_stars_url_handler(callback: types.CallbackQuery):
     # Проверяем права админа
     if not await is_user_admin(callback.from_user.id):
@@ -9120,7 +9418,7 @@ async def edit_stars_url_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "edit_stars_provider_token")
+@dp.callback_query_handler(lambda c: c.data == "edit_stars_provider_token", state="*")
 async def edit_stars_provider_token_handler(callback: types.CallbackQuery):
     # Проверяем права админа
     if not await is_user_admin(callback.from_user.id):
@@ -9137,7 +9435,7 @@ async def edit_stars_provider_token_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "edit_cryptobot_url")
+@dp.callback_query_handler(lambda c: c.data == "edit_cryptobot_url", state="*")
 async def edit_cryptobot_handler(callback: types.CallbackQuery):
     # Проверяем права админа
     if not await is_user_admin(callback.from_user.id):
@@ -9154,7 +9452,7 @@ async def edit_cryptobot_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "edit_bitpapa_token")
+@dp.callback_query_handler(lambda c: c.data == "edit_bitpapa_token", state="*")
 async def edit_bitpapa_token_handler(callback: types.CallbackQuery):
     """Обработчик редактирования BitPAPA API токена"""
     # Проверяем права админа
@@ -9176,7 +9474,7 @@ async def edit_bitpapa_token_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "manage_payment_methods")
+@dp.callback_query_handler(lambda c: c.data == "manage_payment_methods", state="*")
 async def manage_payment_methods_handler(callback: types.CallbackQuery):
     """Обработчик управления методами оплаты"""
     # Проверяем права админа
@@ -9214,7 +9512,7 @@ async def manage_payment_methods_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "configure_payment_layout")
+@dp.callback_query_handler(lambda c: c.data == "configure_payment_layout", state="*")
 async def configure_payment_layout_handler(callback: types.CallbackQuery):
     """Обработчик настройки расположения методов оплаты"""
     # Проверяем права админа
@@ -9250,7 +9548,7 @@ async def configure_payment_layout_handler(callback: types.CallbackQuery):
                     )
                 )
 # Добавляем обработчик для кнопки "Настроить расположение методов" в админке
-@dp.callback_query_handler(lambda c: c.data == "manage_payment_layout")
+@dp.callback_query_handler(lambda c: c.data == "manage_payment_layout", state="*")
 async def manage_payment_layout_handler(callback: types.CallbackQuery):
     """Обработчик для настройки расположения методов оплаты"""
     # Проверяем права админа
@@ -9287,7 +9585,7 @@ async def configure_payment_layout_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("edit_payment_layout_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("edit_payment_layout_"), state="*")
 async def edit_payment_layout_handler(callback: types.CallbackQuery):
     """Обработчик редактирования расположения конкретного метода оплаты"""
     # Проверяем права админа
@@ -9345,7 +9643,7 @@ async def edit_payment_layout_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("set_payment_row_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("set_payment_row_"), state="*")
 async def set_payment_row_handler(callback: types.CallbackQuery):
     """Обработчик установки ряда для метода оплаты"""
     # Проверяем права админа
@@ -9374,7 +9672,7 @@ async def set_payment_row_handler(callback: types.CallbackQuery):
     # Возвращаем к настройке расположения
     await edit_payment_layout_handler(callback)
 
-@dp.callback_query_handler(lambda c: c.data.startswith("set_payment_pos_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("set_payment_pos_"), state="*")
 async def set_payment_pos_handler(callback: types.CallbackQuery):
     """Обработчик установки позиции для метода оплаты"""
     # Проверяем права админа
@@ -9403,7 +9701,7 @@ async def set_payment_pos_handler(callback: types.CallbackQuery):
     # Возвращаем к настройке расположения
     await edit_payment_layout_handler(callback)
 
-@dp.callback_query_handler(lambda c: c.data.startswith("toggle_payment_method_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("toggle_payment_method_"), state="*")
 async def toggle_payment_method_handler(callback: types.CallbackQuery):
     """Обработчик включения/отключения метода оплаты"""
     # Проверяем права админа
@@ -9768,7 +10066,7 @@ async def mmnt_command_handler(message: types.Message):
         parse_mode="Markdown"
     )
 
-@dp.callback_query_handler(lambda c: c.data == "broadcast_all_users")
+@dp.callback_query_handler(lambda c: c.data == "broadcast_all_users", state="*")
 async def broadcast_all_users_handler(callback: types.CallbackQuery):
     """Обработчик рассылки всем пользователям"""
     # Проверяем права админа
@@ -9918,7 +10216,7 @@ async def send_command_handler(message: types.Message):
     except Exception as e:
         await message.answer(f"❌ Ошибка: {e}")
 
-@dp.callback_query_handler(lambda c: c.data == "edit_welcome_message")
+@dp.callback_query_handler(lambda c: c.data == "edit_welcome_message", state="*")
 async def edit_welcome_message_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик кнопки 'Изменить /start'"""
     # Проверяем права админа
@@ -9943,7 +10241,7 @@ async def edit_welcome_message_handler(callback: types.CallbackQuery, state: FSM
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "edit_welcome_sticker")
+@dp.callback_query_handler(lambda c: c.data == "edit_welcome_sticker", state="*")
 async def edit_welcome_sticker_handler(callback: types.CallbackQuery):
     """Обработчик изменения стикера"""
     # Проверяем права админа
@@ -9958,7 +10256,7 @@ async def edit_welcome_sticker_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "edit_welcome_photo")
+@dp.callback_query_handler(lambda c: c.data == "edit_welcome_photo", state="*")
 async def edit_welcome_photo_handler(callback: types.CallbackQuery):
     """Обработчик изменения фото"""
     # Проверяем права админа
@@ -9973,7 +10271,7 @@ async def edit_welcome_photo_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "edit_catalog_photo")
+@dp.callback_query_handler(lambda c: c.data == "edit_catalog_photo", state="*")
 async def edit_catalog_photo_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик изменения фото каталога"""
     # Проверяем права админа
@@ -9998,7 +10296,7 @@ async def edit_catalog_photo_handler(callback: types.CallbackQuery, state: FSMCo
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "edit_bonus_system")
+@dp.callback_query_handler(lambda c: c.data == "edit_bonus_system", state="*")
 async def edit_bonus_system_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик редактирования системы бонусов"""
     # Проверяем права админа
@@ -10026,7 +10324,7 @@ async def edit_bonus_system_handler(callback: types.CallbackQuery, state: FSMCon
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "edit_bonus_sticker")
+@dp.callback_query_handler(lambda c: c.data == "edit_bonus_sticker", state="*")
 async def edit_bonus_sticker_handler(callback: types.CallbackQuery):
     """Обработчик изменения стикера бонусов"""
     if not await is_user_admin(callback.from_user.id):
@@ -10043,7 +10341,7 @@ async def edit_bonus_sticker_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "edit_bonus_photo")
+@dp.callback_query_handler(lambda c: c.data == "edit_bonus_photo", state="*")
 async def edit_bonus_photo_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик изменения фото бонусов"""
     if not await is_user_admin(callback.from_user.id):
@@ -10061,7 +10359,7 @@ async def edit_bonus_photo_handler(callback: types.CallbackQuery, state: FSMCont
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "edit_bonus_description")
+@dp.callback_query_handler(lambda c: c.data == "edit_bonus_description", state="*")
 async def edit_bonus_description_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик изменения описания бонусов"""
     if not await is_user_admin(callback.from_user.id):
@@ -10081,7 +10379,7 @@ async def edit_bonus_description_handler(callback: types.CallbackQuery, state: F
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "edit_welcome_text")
+@dp.callback_query_handler(lambda c: c.data == "edit_welcome_text", state="*")
 async def edit_welcome_text_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик изменения текста"""
     # Проверяем права админа
@@ -10119,7 +10417,7 @@ async def back_to_edit_menu_handler(callback: types.CallbackQuery, state: FSMCon
 # Обработчики состояний для редактирования приветственного сообщения
 
 # Обработчики для управления администраторами
-@dp.callback_query_handler(lambda c: c.data == "add_admin")
+@dp.callback_query_handler(lambda c: c.data == "add_admin", state="*")
 async def add_admin_handler(callback: types.CallbackQuery):
     """Обработчик кнопки 'Добавить админа'"""
     # Проверяем права админа
@@ -10137,7 +10435,7 @@ async def add_admin_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "remove_admin")
+@dp.callback_query_handler(lambda c: c.data == "remove_admin", state="*")
 async def remove_admin_handler(callback: types.CallbackQuery):
     """Обработчик кнопки 'Удалить админа'"""
     # Проверяем права админа
@@ -10156,7 +10454,7 @@ async def remove_admin_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "list_admins")
+@dp.callback_query_handler(lambda c: c.data == "list_admins", state="*")
 async def list_admins_handler(callback: types.CallbackQuery):
     """Обработчик кнопки 'Список админов'"""
     # Проверяем права админа
@@ -10301,6 +10599,25 @@ async def process_welcome_sticker_text(message: types.Message, state: FSMContext
     else:
         await message.answer("❌ Ошибка: Отправьте стикер или напишите 'удалить' для удаления стикера.")
         return
+    await state.finish()
+
+# Обработчик сохранения нового текста приветствия (раньше отсутствовал)
+@dp.message_handler(state=WelcomeEditStates.waiting_for_text)
+async def process_welcome_text(message: types.Message, state: FSMContext):
+    """Обработка нового текста приветственного сообщения"""
+    # Сохраняем форматирование (жирный/курсив/ссылки) из Telegram
+    new_text = message.html_text if message.html_text else message.text
+
+    if not new_text or not new_text.strip():
+        await message.answer("❌ Ошибка: Текст не может быть пустым. Отправьте текст заново.")
+        return
+
+    await db.set_bot_setting("welcome_text", new_text.strip())
+    await message.answer(
+        f"✅ <b>Текст приветствия обновлён!</b>\n\n"
+        f"🔍 <b>Превью:</b>\n{new_text.strip()}",
+        parse_mode="HTML"
+    )
     await state.finish()
 
 # Обработчики для фото в каталоге
@@ -11038,7 +11355,7 @@ async def process_catalog_expiration_days(message: types.Message, state: FSMCont
         await message.answer("❌ Ошибка: Введите числа через запятую (например: 30,60,90) или используйте кнопку 'Пропустить'.")
 
 # Обработчики для выбора дней действия
-@dp.callback_query_handler(lambda c: c.data.startswith("days_inc_") or c.data.startswith("days_dec_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("days_inc_") or c.data.startswith("days_dec_"), state="*")
 async def handle_days_change(callback: types.CallbackQuery):
     """Обработка изменения количества дней"""
     try:
@@ -11076,7 +11393,7 @@ async def handle_days_change(callback: types.CallbackQuery):
         print(f"Error in handle_days_change: {e}")
         await callback.answer("Ошибка при изменении количества дней")
 
-@dp.callback_query_handler(lambda c: c.data in ["days_min_reached", "days_max_reached"])
+@dp.callback_query_handler(lambda c: c.data in ["days_min_reached", "days_max_reached"], state="*")
 async def handle_days_limit_reached(callback: types.CallbackQuery):
     """Обработка достижения мин/макс количества дней"""
     if callback.data == "days_min_reached":
@@ -11085,7 +11402,7 @@ async def handle_days_limit_reached(callback: types.CallbackQuery):
         await callback.answer("Максимальное количество дней достигнуто")
 
 # Обработчики для количества товаров с днями действия
-@dp.callback_query_handler(lambda c: c.data.startswith("qty_inc_days_") or c.data.startswith("qty_dec_days_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("qty_inc_days_") or c.data.startswith("qty_dec_days_"), state="*")
 async def handle_quantity_change_with_days(callback: types.CallbackQuery):
     """Обработка изменения количества для товаров с днями действия"""
     try:
@@ -11128,7 +11445,7 @@ async def handle_quantity_change_with_days(callback: types.CallbackQuery):
         print(f"Error in handle_quantity_change_with_days: {e}")
         await callback.answer("Ошибка при изменении количества")
 
-@dp.callback_query_handler(lambda c: c.data in ["qty_min_reached", "qty_max_reached"])
+@dp.callback_query_handler(lambda c: c.data in ["qty_min_reached", "qty_max_reached"], state="*")
 async def handle_quantity_limit_reached(callback: types.CallbackQuery):
     """Обработка достижения мин/макс количества"""
     if callback.data == "qty_min_reached":
@@ -11620,7 +11937,7 @@ async def create_catalog_item(message: types.Message, state: FSMContext):
     await state.finish()
 
 # Обработчики для массовой загрузки файлов
-@dp.callback_query_handler(lambda c: c.data.startswith("bulk_upload_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("bulk_upload_"), state="*")
 async def bulk_upload_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик массовой загрузки файлов для товаров"""
     if not await is_user_admin(callback.from_user.id):
@@ -11845,7 +12162,7 @@ async def cancel_bulk_create(callback: types.CallbackQuery, state: FSMContext):
     await state.finish()
 
 # Обработчики для поиска в 3x6 сетке
-@dp.callback_query_handler(lambda c: c.data.startswith('search_in_category_'))
+@dp.callback_query_handler(lambda c: c.data.startswith('search_in_category_'), state="*")
 async def handle_search_in_category(callback_query: types.CallbackQuery):
     """Обработчик начала поиска в категории"""
     await callback_query.answer()
@@ -11944,7 +12261,7 @@ async def process_search_query(message: types.Message, state: FSMContext):
     await state.finish()
 
 # Обработчик для пагинации 3x6 сетки
-@dp.callback_query_handler(lambda c: c.data.startswith('grid_page_'))
+@dp.callback_query_handler(lambda c: c.data.startswith('grid_page_'), state="*")
 async def handle_grid_pagination(callback_query: types.CallbackQuery):
     """Обработчик пагинации для 3x6 сетки"""
     await callback_query.answer()
@@ -11999,22 +12316,21 @@ async def handle_grid_pagination(callback_query: types.CallbackQuery):
         print(f"Unexpected error in handle_grid_pagination: {e}")
         await callback_query.answer(f"Ошибка: {e}")
 
-@dp.message_handler(state=WelcomeEditStates.waiting_for_photo, content_types=types.ContentType.PHOTO)
+@dp.message_handler(state=WelcomeEditStates.waiting_for_photo, content_types=COVER_CONTENT_TYPES)
 async def process_welcome_photo(message: types.Message, state: FSMContext):
-    """Обработка нового фото"""
-    # Берём самое высокое разрешение фото
-    photo_id = message.photo[-1].file_id
-    
-    # Проверяем валидность photo_id
-    if not is_valid_telegram_file_id(photo_id):
+    """Обработка нового медиа приветствия (фото, GIF, видео)"""
+    photo_id, media_type = extract_media_file_id(message)
+    if not photo_id or not is_valid_telegram_file_id(photo_id):
         await message.answer(
-            "❌ Ошибка: Получен невалидный ID фото. Попробуйте отправить другое фото."
+            "❌ Ошибка: Получен невалидный ID медиа. Попробуйте отправить другое фото, GIF или видео."
         )
         return
-    
+    if media_type:
+        MEDIA_TYPE_CACHE[photo_id] = media_type
+
     await db.set_bot_setting("welcome_photo_id", photo_id)
     await message.answer(
-        f"✅ Фото успешно обновлено!\n\nID фото: <code>{photo_id}</code>",
+        f"✅ Медиа приветствия успешно обновлено!\n\nID: <code>{photo_id}</code>",
         parse_mode="HTML"
     )
     await state.finish()
@@ -12030,22 +12346,21 @@ async def process_welcome_photo_text(message: types.Message, state: FSMContext):
         return
     await state.finish()
 
-@dp.message_handler(state=WelcomeEditStates.waiting_for_catalog_photo, content_types=types.ContentType.PHOTO)
+@dp.message_handler(state=WelcomeEditStates.waiting_for_catalog_photo, content_types=COVER_CONTENT_TYPES)
 async def process_catalog_photo_edit(message: types.Message, state: FSMContext):
-    """Обработка нового фото каталога"""
-    # Берём самое высокое разрешение фото
-    photo_id = message.photo[-1].file_id
-    
-    # Проверяем валидность photo_id
-    if not is_valid_telegram_file_id(photo_id):
+    """Обработка нового медиа каталога (фото, GIF, видео)"""
+    photo_id, media_type = extract_media_file_id(message)
+    if not photo_id or not is_valid_telegram_file_id(photo_id):
         await message.answer(
-            "❌ Ошибка: Получен невалидный ID фото. Попробуйте отправить другое фото."
+            "❌ Ошибка: Получен невалидный ID медиа. Попробуйте отправить другое фото, GIF или видео."
         )
         return
-    
+    if media_type:
+        MEDIA_TYPE_CACHE[photo_id] = media_type
+
     await db.set_bot_setting("catalog_photo_id", photo_id)
     await message.answer(
-        f"✅ Фото каталога успешно обновлено!\n\nID фото: <code>{photo_id}</code>\n\n📝 Теперь это фото будет отображаться в каталоге с кнопками тем.",
+        f"✅ Обложка каталога успешно обновлена!\n\nID: <code>{photo_id}</code>\n\n📝 Теперь это медиа будет отображаться в каталоге с кнопками тем.",
         parse_mode="HTML"
     )
     await state.finish()
@@ -12086,20 +12401,22 @@ async def process_bonus_sticker_text(message: types.Message, state: FSMContext):
         return
     await state.finish()
 
-@dp.message_handler(state=BonusSystemStates.waiting_for_bonus_photo, content_types=types.ContentType.PHOTO)
+@dp.message_handler(state=BonusSystemStates.waiting_for_bonus_photo, content_types=COVER_CONTENT_TYPES)
 async def process_bonus_photo(message: types.Message, state: FSMContext):
-    """Обработка фото для системы бонусов"""
-    photo_id = message.photo[-1].file_id
-    
-    if not is_valid_telegram_file_id(photo_id):
+    """Обработка медиа для системы бонусов (фото, GIF, видео)"""
+    photo_id, media_type = extract_media_file_id(message)
+
+    if not photo_id or not is_valid_telegram_file_id(photo_id):
         await message.answer(
-            "❌ Ошибка: Получен невалидный ID фото. Попробуйте отправить другое фото."
+            "❌ Ошибка: Получен невалидный ID медиа. Попробуйте отправить другое фото, GIF или видео."
         )
         return
-    
+    if media_type:
+        MEDIA_TYPE_CACHE[photo_id] = media_type
+
     await db.set_bot_setting("bonus_photo_id", photo_id)
     await message.answer(
-        f"✅ Фото бонусов успешно обновлено!\n\nID фото: <code>{photo_id}</code>",
+        f"✅ Медиа бонусов успешно обновлено!\n\nID: <code>{photo_id}</code>",
         parse_mode="HTML"
     )
     await state.finish()
@@ -12135,17 +12452,19 @@ async def process_bonus_description(message: types.Message, state: FSMContext):
 
 # Обработчики для создания списка заданий
 
-@dp.message_handler(state=BonusSystemStates.waiting_for_task_photo, content_types=types.ContentType.PHOTO)
+@dp.message_handler(state=BonusSystemStates.waiting_for_task_photo, content_types=COVER_CONTENT_TYPES)
 async def process_task_photo(message: types.Message, state: FSMContext):
-    """Обработка фото для задания"""
-    photo_id = message.photo[-1].file_id
-    
-    if not is_valid_telegram_file_id(photo_id):
+    """Обработка медиа для задания (фото, GIF, видео)"""
+    photo_id, media_type = extract_media_file_id(message)
+
+    if not photo_id or not is_valid_telegram_file_id(photo_id):
         await message.answer(
-            "❌ Ошибка: Получен невалидный ID фото. Попробуйте отправить другое фото."
+            "❌ Ошибка: Получен невалидный ID медиа. Попробуйте отправить другое фото, GIF или видео."
         )
         return
-    
+    if media_type:
+        MEDIA_TYPE_CACHE[photo_id] = media_type
+
     async with state.proxy() as data:
         data['task_photo_id'] = photo_id
     
@@ -12342,7 +12661,7 @@ async def process_purchase_condition_reward(message: types.Message, state: FSMCo
     
     await state.finish()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("add_bonus_category"))
+@dp.callback_query_handler(lambda c: c.data.startswith("add_bonus_category"), state="*")
 async def add_bonus_category_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик добавления новой категории бонусов"""
     if not await is_user_admin(callback.from_user.id):
@@ -12378,7 +12697,7 @@ async def add_bonus_category_handler(callback: types.CallbackQuery, state: FSMCo
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "show_bonus_sections")
+@dp.callback_query_handler(lambda c: c.data == "show_bonus_sections", state="*")
 async def show_bonus_sections_handler(callback: types.CallbackQuery):
     """Обработчик показа списка разделов бонусов"""
     try:
@@ -12421,7 +12740,7 @@ async def show_bonus_sections_handler(callback: types.CallbackQuery):
 
 # Обработчики для создания заданий в бонусной системе
 
-@dp.callback_query_handler(lambda c: c.data.startswith("create_bonus_task_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("create_bonus_task_"), state="*")
 async def create_bonus_task_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик создания нового задания"""
     if not await is_user_admin(callback.from_user.id):
@@ -12458,6 +12777,62 @@ async def create_bonus_task_handler(callback: types.CallbackQuery, state: FSMCon
     )
     await callback.answer()
 
+@dp.callback_query_handler(lambda c: c.data == "back_to_task_creation", state="*")
+async def back_to_task_creation_handler(callback: types.CallbackQuery, state: FSMContext):
+    """Возврат к выбору типа задания в бонусной системе (кнопка «🔙 Назад»)"""
+    try:
+        if not await is_user_admin(callback.from_user.id):
+            await callback.answer("❌ У вас нет прав администратора", show_alert=True)
+            return
+
+        async with state.proxy() as data:
+            section_id = data.get('section_id')
+
+        if not section_id:
+            await callback.answer("❌ Категория задания потеряна, начните заново", show_alert=True)
+            return
+
+        # Сбрасываем промежуточные данные незавершённого создания задания
+        async with state.proxy() as data:
+            for key in ('task_type', 'task_name', 'reward'):
+                try:
+                    data.pop(key, None)
+                except Exception:
+                    pass
+
+        await BonusSystemStates.waiting_for_task_type_selection.set()
+
+        section = await db.get_bonus_section(section_id)
+        section_name = section[1] if section else f"ID {section_id}"
+
+        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+        keyboard = InlineKeyboardMarkup(row_width=1)
+        keyboard.add(
+            InlineKeyboardButton("💰 Покупки на сумму", callback_data="task_type_purchase"),
+            InlineKeyboardButton("👥 Пригласи друзей", callback_data="task_type_referral"),
+            InlineKeyboardButton("🛋️ Купить товар", callback_data="task_type_product"),
+            InlineKeyboardButton("⚙️ Произвольное задание", callback_data="task_type_custom"),
+            InlineKeyboardButton("🔙 Назад", callback_data=f"view_bonus_section_{section_id}")
+        )
+
+        text = (
+            f"📋 Создание задания\n"
+            f"📁 Категория: {section_name}\n\n"
+            f"Выберите тип задания:"
+        )
+
+        if callback.message.text or callback.message.caption:
+            try:
+                await callback.message.edit_text(text, reply_markup=keyboard)
+            except Exception:
+                await callback.message.answer(text, reply_markup=keyboard)
+        else:
+            await callback.message.answer(text, reply_markup=keyboard)
+
+        await callback.answer()
+    except Exception as e:
+        print(f"Error in back_to_task_creation_handler: {e}")
+        await callback.answer(f"❌ Ошибка: {e}", show_alert=True)
 @dp.callback_query_handler(lambda c: c.data.startswith("task_type_"), state=BonusSystemStates.waiting_for_task_type_selection)
 async def select_task_type_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик выбора типа задания"""
@@ -12714,7 +13089,7 @@ async def create_task_with_params(message: types.Message, data: dict):
 # УДАЛЕНЫ СТАРЫЕ ОБРАБОТЧИКИ: process_bonus_section_name, process_bonus_section_description, process_bonus_section_photo_text
 # Теперь создание категорий бонусов использует стандартный workflow создания категорий каталога
 
-@dp.callback_query_handler(lambda c: c.data.startswith("view_bonus_section_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("view_bonus_section_"), state="*")
 async def view_bonus_section_handler(callback: types.CallbackQuery):
     """Обработчик просмотра раздела бонусов"""
     try:
@@ -12823,8 +13198,9 @@ async def view_bonus_section_handler(callback: types.CallbackQuery):
                         else:
                             # Если это не фото сообщение, удаляем и отправляем новое
                             await callback.message.delete()
-                            new_message = await callback.message.answer_photo(
-                                photo=section_photo_id,
+                            new_message, _ = await answer_media_auto(
+                                callback.message,
+                                section_photo_id,
                                 caption=text,
                                 reply_markup=keyboard,
                                 parse_mode="HTML"
@@ -12835,8 +13211,9 @@ async def view_bonus_section_handler(callback: types.CallbackQuery):
                         # Если редактирование не удалось, отправляем новое сообщение
                         print(f"Ошибка редактирования сообщения: {edit_error}")
                         try:
-                            new_message = await callback.message.answer_photo(
-                                photo=section_photo_id,
+                            new_message, _ = await answer_media_auto(
+                                callback.message,
+                                section_photo_id,
                                 caption=text,
                                 reply_markup=keyboard,
                                 parse_mode="HTML"
@@ -12893,7 +13270,7 @@ async def view_bonus_section_handler(callback: types.CallbackQuery):
     await callback.answer()
 
 
-@dp.callback_query_handler(lambda c: c.data == "show_bonus_sections")
+@dp.callback_query_handler(lambda c: c.data == "show_bonus_sections", state="*")
 async def show_bonus_sections_handler(callback: types.CallbackQuery):
     """Обработчик показа списка разделов бонусов"""
     try:
@@ -12935,7 +13312,7 @@ async def show_bonus_sections_handler(callback: types.CallbackQuery):
     await callback.answer()
 
 
-@dp.callback_query_handler(lambda c: c.data.startswith("view_my_tickets"))
+@dp.callback_query_handler(lambda c: c.data.startswith("view_my_tickets"), state="*")
 async def view_my_tickets_handler(callback: types.CallbackQuery):
     """Обработчик показа информации о билетах пользователя"""
     try:
@@ -12988,7 +13365,7 @@ async def view_my_tickets_handler(callback: types.CallbackQuery):
 # УДАЛЕН create_purchase_conditions_handler - кнопка "Создать условия покупок" удалена
 
 
-@dp.callback_query_handler(lambda c: c.data.startswith("complete_task_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("complete_task_"), state="*")
 async def complete_task_handler(callback: types.CallbackQuery):
     """Обработчик выполнения задания"""
     try:
@@ -13036,7 +13413,7 @@ async def complete_task_handler(callback: types.CallbackQuery):
         await callback.answer(f"❌ Ошибка: {e}", show_alert=True)
 
 
-@dp.callback_query_handler(lambda c: c.data.startswith("execute_task_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("execute_task_"), state="*")
 async def execute_task_handler(callback: types.CallbackQuery):
     """Обработчик выполнения задания - переходит к товару"""
     try:
@@ -13110,7 +13487,7 @@ async def execute_task_handler(callback: types.CallbackQuery):
         print(f"Ошибка в execute_task_handler: {e}")
         await callback.answer(f"❌ Ошибка: {e}", show_alert=True)
 
-@dp.callback_query_handler(lambda c: c.data.startswith("complete_bonus_task_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("complete_bonus_task_"), state="*")
 async def complete_bonus_task_handler(callback: types.CallbackQuery):
     """Обработчик выполнения новых типов заданий"""
     try:
@@ -13168,7 +13545,7 @@ from keyboards import bonus_sections_list_kb, admin_management_kb, back_to_admin
 # smart_cleanup_after_send is defined in this file
 
 
-@dp.callback_query_handler(lambda c: c.data.startswith("view_task_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("view_task_"), state="*")
 async def view_task_handler(callback: types.CallbackQuery):
     """Обработчик просмотра задания"""
     try:
@@ -13348,8 +13725,9 @@ async def view_task_handler(callback: types.CallbackQuery):
         if task_photo_id:
             try:
                 await callback.message.delete()
-                new_message = await callback.message.answer_photo(
-                    photo=task_photo_id,
+                new_message, _ = await answer_media_auto(
+                    callback.message,
+                    task_photo_id,
                     caption=text,
                     reply_markup=keyboard,
                     parse_mode="HTML"
@@ -13593,6 +13971,21 @@ async def on_startup(dp):
     """Действия при запуске бота"""
     status_lines = []
     
+    # Удаляем webhook если он установлен
+    try:
+        await bot.delete_webhook(drop_pending_updates=True)
+        success_msg = "✅ Webhook удален"
+        print(success_msg)
+        status_lines.append(success_msg)
+    except Exception as e:
+        error_msg = f"⚠️ Ошибка удаления webhook: {e}"
+        print(error_msg)
+        status_lines.append(error_msg)
+    
+    # Без callback_query в allowed_updates инлайн-кнопки не приходят боту вообще,
+    # поэтому принудительно перезаписываем настройку при каждом старте.
+    status_lines.append(await reset_allowed_updates())
+
     # Получаем системную информацию
     system_info = await get_system_info()
     
@@ -13890,7 +14283,7 @@ async def safe_start_polling():
             print(f"🔄 Попытка запуска #{retry_count + 1}")
             
             # Запускаем polling
-            await dp.start_polling()
+            await dp.start_polling(allowed_updates=ALLOWED_UPDATES)
             
         except TerminatedByOtherGetUpdates:
             print("❌ Обнаружен конфликт с другим экземпляром бота")
@@ -13956,6 +14349,7 @@ def main():
                     skip_updates=True,
                     on_startup=on_startup,
                     on_shutdown=on_shutdown,
+                    allowed_updates=ALLOWED_UPDATES,
                     timeout=20,
                     relax=0.1,
                     fast=True
@@ -13997,7 +14391,7 @@ def main():
 # Обработчики для новых кнопок
 
 # Обработчики для бонусов
-@dp.callback_query_handler(lambda c: c.data == "skip_bonus_sticker")
+@dp.callback_query_handler(lambda c: c.data == "skip_bonus_sticker", state="*")
 async def skip_bonus_sticker_handler(callback: types.CallbackQuery, state: FSMContext):
     """Пропустить стикер для бонусов"""
     async with state.proxy() as data:
@@ -14011,7 +14405,7 @@ async def skip_bonus_sticker_handler(callback: types.CallbackQuery, state: FSMCo
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "delete_bonus_sticker")
+@dp.callback_query_handler(lambda c: c.data == "delete_bonus_sticker", state="*")
 async def delete_bonus_sticker_handler(callback: types.CallbackQuery, state: FSMContext):
     """Удалить стикер для бонусов"""
     async with state.proxy() as data:
@@ -14025,7 +14419,7 @@ async def delete_bonus_sticker_handler(callback: types.CallbackQuery, state: FSM
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "skip_bonus_photo")
+@dp.callback_query_handler(lambda c: c.data == "skip_bonus_photo", state="*")
 async def skip_bonus_photo_handler(callback: types.CallbackQuery, state: FSMContext):
     """Пропустить фото для бонусов"""
     async with state.proxy() as data:
@@ -14039,7 +14433,7 @@ async def skip_bonus_photo_handler(callback: types.CallbackQuery, state: FSMCont
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "delete_bonus_photo")
+@dp.callback_query_handler(lambda c: c.data == "delete_bonus_photo", state="*")
 async def delete_bonus_photo_handler(callback: types.CallbackQuery, state: FSMContext):
     """Удалить фото для бонусов"""
     async with state.proxy() as data:
@@ -14053,7 +14447,7 @@ async def delete_bonus_photo_handler(callback: types.CallbackQuery, state: FSMCo
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "cancel_bonus_edit")
+@dp.callback_query_handler(lambda c: c.data == "cancel_bonus_edit", state="*")
 async def cancel_bonus_edit_handler(callback: types.CallbackQuery, state: FSMContext):
     """Отменить редактирование бонусов"""
     await state.finish()
@@ -14061,7 +14455,7 @@ async def cancel_bonus_edit_handler(callback: types.CallbackQuery, state: FSMCon
     await callback.answer()
 
 # Обработчики для файлов по дням
-@dp.callback_query_handler(lambda c: c.data.startswith("files_done_day_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("files_done_day_"), state="*")
 async def files_done_day_handler(callback: types.CallbackQuery, state: FSMContext):
     """Завершить загрузку файлов для текущего дня"""
     # Извлекаем номер дня из callback_data
@@ -14097,7 +14491,7 @@ async def files_done_day_handler(callback: types.CallbackQuery, state: FSMContex
     
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("skip_files_day_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("skip_files_day_"), state="*")
 async def skip_files_day_handler(callback: types.CallbackQuery, state: FSMContext):
     """Пропустить загрузку файлов для текущего дня"""
     # Извлекаем номер дня из callback_data
@@ -14129,13 +14523,13 @@ async def skip_files_day_handler(callback: types.CallbackQuery, state: FSMContex
     
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "files_done")
+@dp.callback_query_handler(lambda c: c.data == "files_done", state="*")
 async def files_done_handler(callback: types.CallbackQuery, state: FSMContext):
     """Завершить загрузку файлов"""
     await create_catalog_item(callback.message, state)
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "skip_task_photo")
+@dp.callback_query_handler(lambda c: c.data == "skip_task_photo", state="*")
 async def skip_task_photo_handler(callback: types.CallbackQuery, state: FSMContext):
     """Пропустить фото для задания"""
     async with state.proxy() as data:
@@ -14147,7 +14541,7 @@ async def skip_task_photo_handler(callback: types.CallbackQuery, state: FSMConte
     await BonusSystemStates.waiting_for_task_name.set()
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "cancel_bonus_task")
+@dp.callback_query_handler(lambda c: c.data == "cancel_bonus_task", state="*")
 async def cancel_bonus_task_handler(callback: types.CallbackQuery, state: FSMContext):
     """Отменить создание задания бонусов"""
     await state.finish()
@@ -14346,13 +14740,47 @@ async def set_token_command_handler(message: types.Message):
         
         await message.answer(
             f"✅ **Токен {token_type} обновлен!**\n\n"
-            f"📝 **Новое значение:** `{display_token}`",
+            f"📌 **Тип:** `{token_type}`\n"
+            f"🔑 **Токен:** `{display_token}`",
             parse_mode="Markdown"
         )
         
     except Exception as e:
         await message.answer(f"❌ Ошибка: {e}")
 
+# General callback handler for logging (must be at the end to not intercept specific handlers)
+@dp.callback_query_handler()
+async def log_all_callbacks(callback: types.CallbackQuery):
+    """Логирование всех callback для отладки"""
+    print(f"🔍 CALLBACK RECEIVED: {callback.data} from user {callback.from_user.id}")
+    # Не отвечаем на callback, чтобы другие обработчики могли сработать
+    # Если ни один обработчик не сработал, тогда отвечаем
+    try:
+        await callback.answer()
+    except:
+        pass
+
+@dp.callback_query_handler(state="*")
+async def debug_all_callbacks(callback: types.CallbackQuery, state: FSMContext):
+    print(f"DEBUG UNHANDLED CALLBACK: {callback.data} FROM {callback.from_user.id}")
+    # Клиентам не показываем debug-алерты — просто гасим «часики» на кнопке.
+    try:
+        await callback.answer()
+    except Exception:
+        pass
+
+# Заполняем реестр FSM-состояний с message-хендлерами.
+# ВАЖНО: вызов должен идти после объявления ВСЕХ хендлеров (то есть здесь,
+# в самом конце файла), иначе часть состояний не попадёт в список.
+FSM_STATES_WITH_MESSAGE_HANDLERS.clear()
+FSM_STATES_WITH_MESSAGE_HANDLERS.update(collect_fsm_message_states(dp))
+print(f"✅ Состояний FSM с собственными message-хендлерами: {len(FSM_STATES_WITH_MESSAGE_HANDLERS)}")
+
 if __name__ == '__main__':
-    main()
-    main()
+    from aiogram.utils import executor
+    executor.start_polling(
+        dp,
+        on_startup=on_startup,
+        skip_updates=True,
+        allowed_updates=ALLOWED_UPDATES,
+    )

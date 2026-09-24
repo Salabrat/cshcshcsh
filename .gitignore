@@ -22,4 +22,5 @@ Thumbs.db
 *.log
 .qodo/
 .bd
+logs/
 database.db

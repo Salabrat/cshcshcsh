@@ -50,20 +50,26 @@ class TelegramCategoryPage {
     }
 
     open(categorySlug, categoryTitle, products) {
+        console.log('🔍 CategoryPage.open called:', categorySlug, categoryTitle, products?.length);
+
         this.currentCategory = categorySlug;
         this.currentProducts = products || [];
-        
+
+        console.log('🔍 Category page element:', this.page);
+
         // Set title
         document.getElementById('tgCategoryPageTitle').textContent = categoryTitle || 'Категория';
-        
+
         // Display products
         this.displayProducts(this.currentProducts);
-        
+
         // Show page
         this.page.style.display = 'flex';
         this.page.classList.add('active');
         document.body.style.overflow = 'hidden';
-        
+
+        console.log('✅ Category page displayed');
+
         // Show back button in Telegram
         if (window.telegramWebApp && window.telegramWebApp.isTelegram) {
             // Override back button to close category page
@@ -72,7 +78,7 @@ class TelegramCategoryPage {
             });
             window.telegramWebApp.showBackButton();
         }
-        
+
         // Haptic feedback
         if (window.telegramWebApp) {
             window.telegramWebApp.hapticFeedback('impact');
