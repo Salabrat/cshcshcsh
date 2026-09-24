@@ -781,21 +781,34 @@ async def set_bot_commands():
     except Exception as e:
         print(f"❌ Ошибка установки команд: {e}")
 
-def format_description_with_preview(description: str, preview_link: str = None) -> str:
-    """Форматирует описание с скрытой preview ссылкой сверху"""
+DEFAULT_SECTION_TEXT = "📂 Выберите раздел:"
+
+
+def format_description_with_preview(description: str, preview_link: str = None,
+                                   fallback: str = None) -> str:
+    """Форматирует описание с скрытой preview ссылкой сверху.
+
+    ВАЖНО: никогда не возвращает пустую строку. Telegram не принимает сообщение
+    с пустым текстом ("Bad Request: message text is empty"), и раздел каталога
+    с пустым описанием вообще не открывался — отправлялся только стикер.
+    Если описания нет, подставляется fallback (обычно название раздела).
+    """
+    text = str(description).strip() if description is not None else ""
+    if text.lower() == "none":
+        text = ""
+
+    if not text:
+        text = fallback or DEFAULT_SECTION_TEXT
+
     # Проверяем на None и строку 'None'
-    if not preview_link or preview_link == 'None' or preview_link.lower() == 'none':
-        return description or ""
-    
+    if not preview_link or str(preview_link).strip().lower() == "none":
+        return text
+
     # Создаем скрытую ссылку с невидимым символом
     hidden_link = f'<a href="{preview_link}">\u200b</a>'  # Zero Width Space
-    
-    # Если описание пустое, возвращаем только скрытую ссылку
-    if not description:
-        return hidden_link
-    
+
     # Добавляем скрытую ссылку в начало описания
-    return f"{hidden_link}{description}"
+    return f"{hidden_link}{text}"
 
 async def send_product_files(user_id: int, product_id: int, quantity: int = 1, day_period: int = None):
     """Отправляет файлы товара покупателю в соответствии с количеством и периодом дней"""
@@ -1271,7 +1284,10 @@ async def show_product_by_id(message: types.Message, product_id: int):
     files_count = await db.get_product_files_count(product_id)
     
     # Формируем описание с скрытой preview ссылкой сверху
-    formatted_description = format_description_with_preview(product[4], product[7])
+    formatted_description = format_description_with_preview(
+        product[4], product[7],
+        fallback=f"📦 <b>{product[3]}</b>"
+    )
     
     # Добавляем информацию о цене за штуку и доступном количестве
     if price_info:
@@ -2218,6 +2234,7 @@ async def replace_message_with_sticker_first(callback: types.CallbackQuery, new_
     """Заменяет текущее сообщение новым контентом с ГАРАНТИРОВАННЫМ правильным порядком стикеров
     Стикер ВСЕГДА отправляется ПЕРЕД контентом, затем удаляются старые сообщения
     """
+    sticker_sent = False
     try:
         # 1. СНАЧАЛА отправляем стикер (если есть) - СТИКЕР ВСЕГДА ПЕРВЫЙ!
         if sticker_id:
@@ -2225,7 +2242,15 @@ async def replace_message_with_sticker_first(callback: types.CallbackQuery, new_
                 chat_id=callback.message.chat.id,
                 sticker=sticker_id
             )
-        
+            sticker_sent = True
+
+        # Telegram не принимает пустой текст: раньше это приводило к ошибке,
+        # обработчик ошибки повторно отправлял стикер и раздел не открывался
+        # («присылает 2 стикера и всё»). Теперь текст гарантированно непустой.
+        text_to_send = (new_text or "").strip()
+        if not new_photo and not text_to_send:
+            text_to_send = DEFAULT_SECTION_TEXT
+
         # 2. ЗАТЕМ отправляем новый контент
         if new_photo:
             await bot.send_photo(
@@ -2238,7 +2263,7 @@ async def replace_message_with_sticker_first(callback: types.CallbackQuery, new_
         else:
             await bot.send_message(
                 chat_id=callback.message.chat.id,
-                text=new_text,
+                text=text_to_send,
                 parse_mode="HTML",
                 reply_markup=new_keyboard
             )
@@ -2248,9 +2273,10 @@ async def replace_message_with_sticker_first(callback: types.CallbackQuery, new_
         
     except Exception as e:
         print(f"Ошибка при замене сообщения: {e}")
-        # В случае ошибки все равно пытаемся отправить контент
+        # В случае ошибки все равно пытаемся отправить контент,
+        # но стикер повторно НЕ отправляем (иначе получалось два стикера)
         try:
-            if sticker_id:
+            if not sticker_sent and sticker_id:
                 await bot.send_sticker(
                     chat_id=callback.message.chat.id,
                     sticker=sticker_id
@@ -2267,7 +2293,7 @@ async def replace_message_with_sticker_first(callback: types.CallbackQuery, new_
             else:
                 await bot.send_message(
                     chat_id=callback.message.chat.id,
-                    text=new_text,
+                    text=(new_text or "").strip() or DEFAULT_SECTION_TEXT,
                     parse_mode="HTML",
                     reply_markup=new_keyboard
                 )
@@ -2871,7 +2897,7 @@ async def _handle_catalog_button(message: types.Message):
         )
         
         # Формируем текст
-        catalog_text = ""
+        catalog_text = "🏪 <b>Каталог товаров</b>\n\nВыберите тему:"
         
         # Отправляем каталог с фото или без
         if catalog_photo_id:
@@ -4724,7 +4750,10 @@ async def view_theme_handler(callback: types.CallbackQuery):
         print(f"Got {len(children)} children")
         
         # Формируем описание с preview_link
-        description = format_description_with_preview(theme[4], theme[7])
+        description = format_description_with_preview(
+            theme[4], theme[7],
+            fallback=f"🏪 <b>{theme[3]}</b>\n\nВыберите категорию:"
+        )
         
         # Создаём клавиатуру
         keyboard = await create_catalog_keyboard(children, is_admin=await is_user_admin(callback.from_user.id), parent_id=theme_id, item_type='theme')
@@ -4804,7 +4833,10 @@ async def view_category_handler(callback: types.CallbackQuery):
         set_user_page_state(callback.from_user.id, category_id, current_page)
         
         # Формируем описание с preview_link
-        description = format_description_with_preview(category[4], category[7])
+        description = format_description_with_preview(
+            category[4], category[7],
+            fallback=f"📂 <b>{category[3]}</b>\n\nВыберите раздел:"
+        )
         
         # Проверяем, использует ли категория 3x6 сетку
         is_grid_3x6 = category[13] if len(category) > 13 else False
@@ -4865,7 +4897,10 @@ async def view_subcategory_handler(callback: types.CallbackQuery):
         set_user_page_state(callback.from_user.id, subcategory_id, current_page)
         
         # Формируем описание с preview_link
-        description = format_description_with_preview(subcategory[4], subcategory[7])
+        description = format_description_with_preview(
+            subcategory[4], subcategory[7],
+            fallback=f"📂 <b>{subcategory[3]}</b>\n\nВыберите товар:"
+        )
         
         # Проверяем, использует ли родительская категория 3x6 сетку
         parent_category = await db.get_catalog_item(subcategory[1])  # parent_id
@@ -4935,7 +4970,10 @@ async def view_product_handler(callback: types.CallbackQuery, state: FSMContext)
         files_count = await db.get_product_files_count(product_id)
         
         # Формируем описание с скрытой preview ссылкой сверху
-        formatted_description = format_description_with_preview(product[4], product[7])
+        formatted_description = format_description_with_preview(
+            product[4], product[7],
+            fallback=f"📦 <b>{product[3]}</b>"
+        )
         
         # Добавляем информацию о цене за штуку и доступном количестве
         if price_info:
@@ -6835,7 +6873,10 @@ async def recreate_category_view(chat_id, message_id, category_id, user_id=None)
         children = await db.get_catalog_children(category_id)
         
         # Формируем описание с preview_link
-        description = format_description_with_preview(category[4], category[7])
+        description = format_description_with_preview(
+            category[4], category[7],
+            fallback=f"📂 <b>{category[3]}</b>\n\nВыберите раздел:"
+        )
         
         # Создаём клавиатуру
         from keyboards import create_catalog_keyboard
@@ -6872,7 +6913,10 @@ async def recreate_theme_view(chat_id, message_id, theme_id, user_id=None):
         children = await db.get_catalog_children(theme_id)
         
         # Формируем описание с preview_link
-        description = format_description_with_preview(theme[4], theme[7])
+        description = format_description_with_preview(
+            theme[4], theme[7],
+            fallback=f"🏪 <b>{theme[3]}</b>\n\nВыберите категорию:"
+        )
         
         # Создаём клавиатуру
         from keyboards import create_catalog_keyboard
@@ -6913,7 +6957,10 @@ async def recreate_subcategory_view(chat_id, message_id, subcategory_id, user_id
         children = await db.get_catalog_children(subcategory_id)
         
         # Формируем описание с preview_link
-        description = format_description_with_preview(subcategory[4], subcategory[7])
+        description = format_description_with_preview(
+            subcategory[4], subcategory[7],
+            fallback=f"📂 <b>{subcategory[3]}</b>\n\nВыберите товар:"
+        )
         
         # Создаём клавиатуру
         from keyboards import create_catalog_keyboard
@@ -6974,7 +7021,10 @@ async def recreate_product_view(chat_id: int, message_id: int, product_id: int, 
                 print(f"Error sending sticker: {e}")
         
         # Формируем описание с скрытой preview ссылкой сверху
-        formatted_description = format_description_with_preview(product[4], product[7])
+        formatted_description = format_description_with_preview(
+            product[4], product[7],
+            fallback=f"📦 <b>{product[3]}</b>"
+        )
         
         # Добавляем информацию о цене за штуку и доступном количестве
         if price_info:
@@ -7865,7 +7915,10 @@ async def view_parent_handler(callback: types.CallbackQuery):
             children = await db.get_catalog_children(parent_of_current)
             
             # Формируем описание с preview_link
-            description = format_description_with_preview(parent[4], parent[7])
+            description = format_description_with_preview(
+                parent[4], parent[7],
+                fallback=f"📂 <b>{parent[3]}</b>"
+            )
             
             # Определяем тип родительского элемента для правильной клавиатуры
             parent_type = parent[2]  # type column
