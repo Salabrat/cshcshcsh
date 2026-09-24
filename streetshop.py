@@ -19,6 +19,9 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.utils import executor
 from aiogram.utils.exceptions import NetworkError
+# SkipHandler позволяет хендлеру «пропустить» себя, передав апдейт следующему
+# подходящему хендлеру (обычно они выполняются по принципу «первый победил»)
+from aiogram.dispatcher.handler import SkipHandler
 from database import db  
 from config import cfg
 from keyboards import *
@@ -663,6 +666,40 @@ async def reset_allowed_updates() -> str:
         msg = f"⚠️ Не удалось сбросить allowed_updates: {e}"
     print(msg)
     return msg
+
+
+# FSM-состояния, для которых зарегистрированы отдельные message-хендлеры.
+# Заполняется функцией collect_fsm_message_states() в конце файла, когда все
+# хендлеры уже объявлены.
+# Зачем: глобальный обработчик текста handle_menu_buttons (state='*') стоит в
+# очереди раньше форм редактирования каталога/реквизитов и, поскольку aiogram
+# останавливается на первом подходящем хендлере, «съедал» введённый текст.
+# Теперь он пропускает сообщения, относящиеся к активной форме.
+FSM_STATES_WITH_MESSAGE_HANDLERS = set()
+
+
+def collect_fsm_message_states(dispatcher):
+    """Собирает состояния FSM, у которых есть message-хендлеры.
+
+    Возвращает множество строк вида "AdminCatalogEditStates:waiting_for_name".
+    """
+    from aiogram.dispatcher.filters.builtin import StateFilter
+
+    states = set()
+    registry = getattr(dispatcher, "message_handlers", None)
+    for record in getattr(registry, "handlers", []):
+        for filter_obj in (record.filters or []):
+            check = getattr(filter_obj, "filter", None)
+            if isinstance(check, StateFilter):
+                state_filter = check
+            else:
+                state_filter = getattr(check, "__self__", None)
+
+            if isinstance(state_filter, StateFilter):
+                for state_name in getattr(state_filter, "states", []):
+                    if isinstance(state_name, str) and state_name != "*":
+                        states.add(state_name)
+    return states
 
 # Логирование всех incoming updates
 @dp.errors_handler()
@@ -3013,7 +3050,7 @@ async def _handle_bonus_button(message: types.Message):
 
 # Единый обработчик для всех кнопок меню
 @dp.message_handler(lambda message: message.text and not message.text.startswith('/'), state='*')
-async def handle_menu_buttons(message: types.Message):
+async def handle_menu_buttons(message: types.Message, state: FSMContext):
     """Единый обработчик для всех кнопок главного меню с динамической проверкой"""
     print(f"Menu button handler called with text: {message.text}")
     # Проверяем все кнопки меню
@@ -3035,6 +3072,20 @@ async def handle_menu_buttons(message: types.Message):
             await log_user_action(message.from_user.id, f"Нажал кнопку меню: {message.text}")
             return
     
+    # Текст не совпал ни с одной кнопкой меню.
+    # Если у пользователя активно FSM-состояние, для которого есть свой
+    # обработчик (редактирование каталога, реквизитов, названий кнопок и т.п.),
+    # НЕ перехватываем сообщение, а передаём его дальше по цепочке хендлеров.
+    try:
+        current_state = await state.get_state()
+    except Exception as e:
+        print(f"Не удалось определить текущее состояние: {e}")
+        current_state = None
+
+    if current_state and current_state in FSM_STATES_WITH_MESSAGE_HANDLERS:
+        print(f"Активна форма '{current_state}' — передаём ввод её обработчику")
+        raise SkipHandler()
+
     print(f"No button matched, forwarding to admins")
     # Если это не кнопка меню, пересылаем сообщение админам
     await forward_user_message_to_admins(message)
@@ -10357,6 +10408,25 @@ async def process_welcome_sticker_text(message: types.Message, state: FSMContext
         return
     await state.finish()
 
+# Обработчик сохранения нового текста приветствия (раньше отсутствовал)
+@dp.message_handler(state=WelcomeEditStates.waiting_for_text)
+async def process_welcome_text(message: types.Message, state: FSMContext):
+    """Обработка нового текста приветственного сообщения"""
+    # Сохраняем форматирование (жирный/курсив/ссылки) из Telegram
+    new_text = message.html_text if message.html_text else message.text
+
+    if not new_text or not new_text.strip():
+        await message.answer("❌ Ошибка: Текст не может быть пустым. Отправьте текст заново.")
+        return
+
+    await db.set_bot_setting("welcome_text", new_text.strip())
+    await message.answer(
+        f"✅ <b>Текст приветствия обновлён!</b>\n\n"
+        f"🔍 <b>Превью:</b>\n{new_text.strip()}",
+        parse_mode="HTML"
+    )
+    await state.finish()
+
 # Обработчики для фото в каталоге
 @dp.message_handler(state=CatalogAddStates.waiting_for_photo, content_types=types.ContentType.PHOTO)
 async def process_catalog_photo(message: types.Message, state: FSMContext):
@@ -14500,6 +14570,13 @@ async def debug_all_callbacks(callback: types.CallbackQuery, state: FSMContext):
         await callback.answer()
     except Exception:
         pass
+
+# Заполняем реестр FSM-состояний с message-хендлерами.
+# ВАЖНО: вызов должен идти после объявления ВСЕХ хендлеров (то есть здесь,
+# в самом конце файла), иначе часть состояний не попадёт в список.
+FSM_STATES_WITH_MESSAGE_HANDLERS.clear()
+FSM_STATES_WITH_MESSAGE_HANDLERS.update(collect_fsm_message_states(dp))
+print(f"✅ Состояний FSM с собственными message-хендлерами: {len(FSM_STATES_WITH_MESSAGE_HANDLERS)}")
 
 if __name__ == '__main__':
     from aiogram.utils import executor
