@@ -170,9 +170,9 @@ class TelegramCatalog {
             const coverElement = card.querySelector('.tg-brand-cover');
             
             // Если есть несколько обложек, добавляем листание по нажатию на обложку
-            if (coverElement && card.dataset.catalogCovers) {
+            if (coverElement && card.dataset.brandCovers) {
                 try {
-                    const covers = JSON.parse(card.dataset.catalogCovers);
+                    const covers = JSON.parse(card.dataset.brandCovers);
                     if (covers.length > 1) {
                         let currentIndex = parseInt(coverElement.dataset.coverIndex || '0');
                         
@@ -207,8 +207,11 @@ class TelegramCatalog {
             
             // Обработчик клика на карточку для открытия бренда
             card.addEventListener('click', (e) => {
+                console.log('🔍 Card clicked:', brand.name, e.target);
+
                 // Не открываем бренд если кликнули на обложку с листанием
-                if (e.target.closest('.tg-brand-cover') && coverElement && card.dataset.catalogCovers) {
+                if (e.target.closest('.tg-brand-cover') && coverElement && card.dataset.brandCovers) {
+                    console.log('⚠️ Click on cover with carousel, skipping');
                     return;
                 }
                 this.openBrand(brand);
@@ -273,6 +276,8 @@ class TelegramCatalog {
 
 
     openBrand(brand) {
+        console.log('🔍 openBrand called for:', brand.name, brand.id);
+
         // Haptic feedback
         if (window.telegramWebApp) {
             window.telegramWebApp.hapticFeedback('impact');
@@ -281,8 +286,11 @@ class TelegramCatalog {
         // Get products for this brand
         const brandProducts = this.allProducts.filter(p => p.brandId === brand.id);
         const productCount = brandProducts.length;
-        
+
+        console.log('🔍 Brand products found:', productCount);
+
         if (productCount === 0) {
+            console.log('⚠️ No products in brand');
             if (window.telegramWebApp) {
                 window.telegramWebApp.showNotification('В этой категории пока нет товаров');
             }
@@ -294,20 +302,26 @@ class TelegramCatalog {
             window.telegramNavigation.saveState();
         }
 
+        console.log('🔍 Checking for category page...');
+        console.log('🔍 window.telegramCategoryPage:', window.telegramCategoryPage);
+        console.log('🔍 window.TelegramCategoryPage:', window.TelegramCategoryPage);
+
         // Open brand products in category page (2 columns layout)
         if (window.telegramCategoryPage) {
+            console.log('✅ Using existing telegramCategoryPage');
             window.telegramCategoryPage.open(`brand-${brand.id}`, brand.name, brandProducts);
         } else if (window.TelegramCategoryPage) {
+            console.log('✅ Creating new telegramCategoryPage');
             // Initialize if not already initialized
             window.telegramCategoryPage = new window.TelegramCategoryPage();
             window.telegramCategoryPage.open(`brand-${brand.id}`, brand.name, brandProducts);
         } else {
-            console.error('Category page not available');
+            console.error('❌ Category page not available');
             if (window.telegramWebApp) {
                 window.telegramWebApp.showNotification('Ошибка открытия категории');
             }
         }
-        
+
         // Save state after opening brand
         if (window.telegramNavigation) {
             window.telegramNavigation.saveState();

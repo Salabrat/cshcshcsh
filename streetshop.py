@@ -620,6 +620,57 @@ init_bot(bot)  # Инициализируем глобальную переме�
 storage = MemoryStorage()
 dp = Dispatcher(bot, storage=storage)
 
+# КРИТИЧНО ДЛЯ ИНЛАЙН-КНОПОК.
+# Telegram запоминает список allowed_updates на своей стороне и использует его,
+# если polling-запрос не передаёт allowed_updates явно. Если в сохранённом списке
+# нет "callback_query", нажатия инлайн-кнопок вообще не доходят до бота — при этом
+# сообщения и /start продолжают работать. Поэтому список задаём явно, а при
+# старте принудительно перезаписываем его на стороне Telegram.
+ALLOWED_UPDATES = [
+    "message",
+    "edited_message",
+    "channel_post",
+    "edited_channel_post",
+    "inline_query",
+    "chosen_inline_result",
+    "callback_query",
+    "shipping_query",
+    "pre_checkout_query",
+    "poll",
+    "poll_answer",
+    "my_chat_member",
+    "chat_member",
+    "chat_join_request",
+]
+
+
+async def reset_allowed_updates() -> str:
+    """Перезаписывает sticky-настройку allowed_updates на стороне Telegram.
+
+    Возвращает текст статуса для лога/отчёта о запуске.
+    """
+    try:
+        updates = await bot.get_updates(timeout=0, allowed_updates=ALLOWED_UPDATES)
+        if updates:
+            # подтверждаем полученные апдейты, чтобы они не обработались дважды
+            await bot.get_updates(
+                offset=updates[-1].update_id + 1,
+                timeout=0,
+                allowed_updates=ALLOWED_UPDATES,
+            )
+        msg = "✅ allowed_updates сброшены (callback_query разрешён)"
+    except Exception as e:
+        msg = f"⚠️ Не удалось сбросить allowed_updates: {e}"
+    print(msg)
+    return msg
+
+# Логирование всех incoming updates
+@dp.errors_handler()
+async def errors_handler(update, exception):
+    print(f"🔍 Update: {update}")
+    print(f"❌ Error: {exception}")
+    return True
+
 # Устанавливаем Menu Button для отображения кнопки "Меню" рядом со скрепкой
 async def set_menu_button():
     """Устанавливает кнопку Меню в интерфейсе ввода сообщений"""
@@ -1026,7 +1077,7 @@ async def promo_command_handler(message: types.Message):
         print(f"DB Error (expected if not implemented): could not add promo code. {e}")
         await message.answer(f"❌ Ошибка при добавлении промокода. Убедитесь, что функция `add_promo_code` реализована в `database.py`.")
 
-@dp.callback_query_handler(lambda c: c.data.startswith("promo_code_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("promo_code_"), state="*")
 async def promo_code_button_handler(callback: types.CallbackQuery, state: FSMContext):
     """
     Handles the 'Have a promo code' button click.
@@ -1083,7 +1134,7 @@ async def process_promo_code_input(message: types.Message, state: FSMContext):
     # Return to product view regardless of promo validity
     await recreate_product_view(message.chat.id, original_message_id, product_id, message.from_user.id)
 
-@dp.callback_query_handler(lambda c: c.data.startswith("share_product_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("share_product_"), state="*")
 async def share_product_button_handler(callback: types.CallbackQuery):
     """
     Handles the 'Share' button click.
@@ -1123,7 +1174,7 @@ async def share_product_button_handler(callback: types.CallbackQuery):
 # This handler is crucial for the "Back" buttons to work.
 # It must replicate how products are normally shown.
 # If you have a function that shows a product, call it here.
-@dp.callback_query_handler(lambda c: c.data.startswith("show_product_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("show_product_"), state="*")
 async def show_product_from_callback(callback: types.CallbackQuery):
     product_id = int(callback.data.split("_")[2])
     product = await db.get_catalog_item(product_id)
@@ -1746,7 +1797,7 @@ async def create_cryptobot_invoice_for_order(amount: float, code: str, user_id: 
         return None
 
 
-@dp.callback_query_handler(lambda c: c.data.startswith("cryptobot_check_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("cryptobot_check_"), state="*")
 async def cryptobot_check_payment(callback: types.CallbackQuery):
     """Проверка статуса оплаты CryptoBot"""
     print(f"Проверка статуса оплаты CryptoBot: {callback.data}")
@@ -1804,7 +1855,7 @@ async def cryptobot_check_order_payment(callback: types.CallbackQuery, code: str
     await callback.answer("Проверяем статус оплаты заказа...")
 
 
-@dp.callback_query_handler(lambda c: c.data.startswith("pay_method_stars_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("pay_method_stars_"), state="*")
 async def process_stars_payment(callback: types.CallbackQuery):
     code = callback.data.split("_")[-1]
     payment = await db.get_payment(code)
@@ -1837,7 +1888,7 @@ async def process_stars_payment(callback: types.CallbackQuery):
         await callback.answer("Ошибка при создании платежа")
 
 
-@dp.callback_query_handler(lambda c: c.data.startswith("order_pay_stars_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("order_pay_stars_"), state="*")
 async def process_order_stars_payment(callback: types.CallbackQuery):
     code = callback.data.split("_")[-1]
     order = await db.get_order(code)
@@ -2961,7 +3012,7 @@ async def _handle_bonus_button(message: types.Message):
         )
 
 # Единый обработчик для всех кнопок меню
-@dp.message_handler(lambda message: message.text and not message.text.startswith('/'))
+@dp.message_handler(lambda message: message.text and not message.text.startswith('/'), state='*')
 async def handle_menu_buttons(message: types.Message):
     """Единый обработчик для всех кнопок главного меню с динамической проверкой"""
     print(f"Menu button handler called with text: {message.text}")
@@ -3037,7 +3088,7 @@ async def log_user_action(user_id: int, action: str):
         print(f"Ошибка при логировании действия: {e}")
 
 
-@dp.callback_query_handler(lambda c: c.data.startswith("confirm_payment_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("confirm_payment_"), state="*")
 async def confirm_payment_handler(callback: types.CallbackQuery):
     code = callback.data.split("_")[-1]
     payment = await db.get_payment(code)
@@ -3114,7 +3165,7 @@ async def confirm_payment_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("confirm_order_payment_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("confirm_order_payment_"), state="*")
 async def confirm_order_payment_handler(callback: types.CallbackQuery):
     """Обработчик подтверждения оплаты заказа"""
     try:
@@ -3227,7 +3278,7 @@ async def confirm_order_payment_handler(callback: types.CallbackQuery):
         await callback.answer(f"Ошибка: {e}")
 
 # Обработчики для админа - подтверждение и отклонение заказов
-@dp.callback_query_handler(lambda c: c.data.startswith("admin_confirm_order_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("admin_confirm_order_"), state="*")
 async def admin_confirm_order_handler(callback: types.CallbackQuery):
     """Обработчик подтверждения заказа админом"""
     if not await is_user_admin(callback.from_user.id):
@@ -3266,7 +3317,7 @@ async def admin_confirm_order_handler(callback: types.CallbackQuery):
         print(f"Error in admin_confirm_order_handler: {e}")
         await callback.answer(f"Ошибка: {e}")
 
-@dp.callback_query_handler(lambda c: c.data.startswith("admin_reject_order_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("admin_reject_order_"), state="*")
 async def admin_reject_order_handler(callback: types.CallbackQuery):
     """Обработчик отклонения заказа админом"""
     if not await is_user_admin(callback.from_user.id):
@@ -3291,7 +3342,7 @@ async def admin_reject_order_handler(callback: types.CallbackQuery):
         await callback.answer(f"Ошибка: {e}")
 
 # Заглушки для недоступных методов оплаты
-@dp.callback_query_handler(lambda c: (c.data.startswith("pay_method_sbp_") or c.data.startswith("order_pay_sbp_") or c.data.startswith("pay_method_qr_") or c.data.startswith("order_pay_qr_")) and "_phone_" not in c.data)
+@dp.callback_query_handler(lambda c: (c.data.startswith("pay_method_sbp_") or c.data.startswith("order_pay_sbp_") or c.data.startswith("pay_method_qr_") or c.data.startswith("order_pay_qr_")) and "_phone_" not in c.data, state="*")
 async def sbp_qr_stub_handler(callback: types.CallbackQuery):
     """Заглушка для СБП-QR (но не для phone!)"""
     await callback.answer(
@@ -3299,7 +3350,7 @@ async def sbp_qr_stub_handler(callback: types.CallbackQuery):
         show_alert=True
     )
 
-@dp.callback_query_handler(lambda c: c.data.startswith("pay_method_skins_") or c.data.startswith("order_pay_skins_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("pay_method_skins_") or c.data.startswith("order_pay_skins_"), state="*")
 async def skins_stub_handler(callback: types.CallbackQuery):
     """Заглушка для скинов"""
     await callback.answer(
@@ -3307,7 +3358,7 @@ async def skins_stub_handler(callback: types.CallbackQuery):
         show_alert=True
     )
 
-@dp.callback_query_handler(lambda c: c.data.startswith("pay_method_bitpapa_") or c.data.startswith("order_pay_bitpapa_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("pay_method_bitpapa_") or c.data.startswith("order_pay_bitpapa_"), state="*")
 async def bitpapa_payment_handler(callback: types.CallbackQuery):
     """Обработчик платежей через BitPAPA (создает реальные инвойсы)"""
     try:
@@ -3456,7 +3507,7 @@ async def bitpapa_payment_handler(callback: types.CallbackQuery):
         traceback.print_exc()
         await callback.answer("❌ Произошла ошибка при создании платежа", show_alert=True)
 
-@dp.callback_query_handler(lambda c: c.data.startswith("check_bitpapa_payment_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("check_bitpapa_payment_"), state="*")
 async def check_bitpapa_payment_handler(callback: types.CallbackQuery):
     """Обработчик проверки статуса платежа BitPAPA"""
     try:
@@ -3481,7 +3532,7 @@ async def check_bitpapa_payment_handler(callback: types.CallbackQuery):
         print(f"Ошибка в check_bitpapa_payment_handler: {e}")
         await callback.answer("❌ Ошибка проверки статуса", show_alert=True)
 
-@dp.callback_query_handler(lambda c: c.data.startswith("cancel_payment_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("cancel_payment_"), state="*")
 async def cancel_payment_handler(callback: types.CallbackQuery):
     code = callback.data.split("_")[-1]
 
@@ -3565,7 +3616,7 @@ async def process_payment(message: types.Message, amount: int):
             reply_markup=await main_menu_kb()
         )
 
-@dp.callback_query_handler(lambda c: c.data == "custom_amount")
+@dp.callback_query_handler(lambda c: c.data == "custom_amount", state="*")
 async def custom_amount_handler(callback: types.CallbackQuery):
     await safe_delete_messages(callback)
     await callback.message.answer(
@@ -3576,7 +3627,7 @@ async def custom_amount_handler(callback: types.CallbackQuery):
 
 
 
-@dp.callback_query_handler(lambda c: c.data.startswith("pay_method_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("pay_method_"), state="*")
 async def process_payment_method(callback: types.CallbackQuery):
     print(f"Получен callback: {callback.data}")
     parts = callback.data.split("_")
@@ -3651,7 +3702,7 @@ async def process_payment_method(callback: types.CallbackQuery):
     await smart_cleanup_after_send(callback)
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("pay_amount_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("pay_amount_"), state="*")
 async def process_payment_amount(callback: types.CallbackQuery):
     print(f"=== НАЧАЛО ОБРАБОТКИ CALLBACK ===")
     print(f"Полный callback_data: {callback.data}")
@@ -3800,7 +3851,7 @@ async def back_to_payment_handler(callback: types.CallbackQuery, state: FSMConte
 
 
 
-@dp.callback_query_handler(lambda c: c.data == "deposit_balance")
+@dp.callback_query_handler(lambda c: c.data == "deposit_balance", state="*")
 async def deposit_from_profile(callback: types.CallbackQuery):
     try:
         await safe_delete_messages(callback)
@@ -3823,7 +3874,7 @@ async def deposit_from_profile(callback: types.CallbackQuery):
         )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("admin_approve_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("admin_approve_"), state="*")
 async def admin_approve_payment(callback: types.CallbackQuery):
     parts = callback.data.split("_")
     code = parts[2]
@@ -3899,7 +3950,7 @@ async def admin_approve_payment(callback: types.CallbackQuery):
             print(f"Ошибка подтверждения платежа: {e}")
             await callback.answer("❌ Ошибка при пополнении")
 
-@dp.callback_query_handler(lambda c: c.data.startswith("admin_reject_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("admin_reject_"), state="*")
 async def admin_reject_payment(callback: types.CallbackQuery):
     code = callback.data.split("_")[-1]
 
@@ -3917,12 +3968,12 @@ async def admin_reject_payment(callback: types.CallbackQuery):
 
     await callback.answer("Платеж отклонен")
 
-@dp.callback_query_handler(lambda c: c.data == "my_orders")
+@dp.callback_query_handler(lambda c: c.data == "my_orders", state="*")
 async def show_orders(callback: types.CallbackQuery):
     """Показывает заказы пользователя с пагинацией"""
     await show_user_orders(callback, page=0)
 
-@dp.callback_query_handler(lambda c: c.data.startswith("orders_page_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("orders_page_"), state="*")
 async def orders_pagination_handler(callback: types.CallbackQuery):
     """Обработчик пагинации заказов пользователя"""
     try:
@@ -3935,7 +3986,7 @@ async def orders_pagination_handler(callback: types.CallbackQuery):
         print(f"Unexpected error in orders_pagination_handler: {e}")
         await callback.answer(f"Ошибка: {e}")
 
-@dp.callback_query_handler(lambda c: c.data.startswith("view_order_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("view_order_"), state="*")
 async def view_order_details(callback: types.CallbackQuery):
     """Обработчик просмотра деталей заказа"""
     try:
@@ -4061,7 +4112,7 @@ async def view_order_details(callback: types.CallbackQuery):
         print(f"Error in view_order_details: {e}")
         await callback.answer(f"Ошибка: {e}")
 
-@dp.callback_query_handler(lambda c: c.data.startswith("pay_order_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("pay_order_"), state="*")
 async def pay_order_handler(callback: types.CallbackQuery):
     """Обработчик оплаты заказа"""
     try:
@@ -4105,7 +4156,7 @@ async def pay_order_handler(callback: types.CallbackQuery):
         print(f"Error in pay_order_handler: {e}")
         await callback.answer(f"Ошибка: {e}")
 
-@dp.callback_query_handler(lambda c: c.data.startswith("cancel_order_from_orders_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("cancel_order_from_orders_"), state="*")
 async def cancel_order_from_orders_handler(callback: types.CallbackQuery):
     """Обработчик отмены заказа из списка заказов с подтверждением"""
     try:
@@ -4199,7 +4250,7 @@ async def show_user_orders(callback: types.CallbackQuery, page: int = 0, edit_me
     await callback.answer()
 
 
-@dp.callback_query_handler(lambda c: c.data == "referral_program")
+@dp.callback_query_handler(lambda c: c.data == "referral_program", state="*")
 async def show_referral_program(callback: types.CallbackQuery):
     user_id = callback.from_user.id
     referral_link = f"https://t.me/streetsoftkatalogbot?start={user_id}"
@@ -4235,7 +4286,7 @@ async def show_referral_program(callback: types.CallbackQuery):
 #     # Не обрабатываем, просто логируем
 #     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "withdraw_funds")
+@dp.callback_query_handler(lambda c: c.data == "withdraw_funds", state="*")
 async def withdraw_funds(callback: types.CallbackQuery):
     # Сначала отправляем новый контент
     try:
@@ -4256,7 +4307,7 @@ async def withdraw_funds(callback: types.CallbackQuery):
     await callback.answer()
 
 
-@dp.callback_query_handler(lambda c: c.data == "withdraw_to_balance")
+@dp.callback_query_handler(lambda c: c.data == "withdraw_to_balance", state="*")
 async def withdraw_to_balance(callback: types.CallbackQuery):
     user_balance = 0  # Здесь должна быть реальная проверка баланса из БД
 
@@ -4359,7 +4410,7 @@ async def back_to_contact(callback: types.CallbackQuery, state: FSMContext):
     await smart_cleanup_after_send(callback)
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "create_ticket")
+@dp.callback_query_handler(lambda c: c.data == "create_ticket", state="*")
 async def create_ticket(callback: types.CallbackQuery):
     # Сначала отправляем новый контент
     await send_support_sticker(callback.message.chat.id)
@@ -4373,7 +4424,7 @@ async def create_ticket(callback: types.CallbackQuery):
     await callback.answer()
 
 
-@dp.callback_query_handler(lambda c: c.data == "my_tickets")
+@dp.callback_query_handler(lambda c: c.data == "my_tickets", state="*")
 async def show_my_tickets(callback: types.CallbackQuery):
     try:
         tickets = await db.get_user_tickets(callback.from_user.id)
@@ -4406,7 +4457,7 @@ async def show_my_tickets(callback: types.CallbackQuery):
     await callback.answer()
 
 
-@dp.callback_query_handler(lambda c: c.data.startswith("view_ticket_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("view_ticket_"), state="*")
 async def view_ticket_details(callback: types.CallbackQuery):
     try:
         ticket_id = int(callback.data.split("_")[-1])
@@ -4508,7 +4559,7 @@ async def back_to_topics(callback: types.CallbackQuery, state: FSMContext):
         await callback.answer("Произошла ошибка, попробуйте ещё раз")
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("support_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("support_"), state="*")
 async def handle_support_topic(callback: types.CallbackQuery, state: FSMContext):
     topic = callback.data.split("_")[1]
     topic_names = {
@@ -4602,15 +4653,15 @@ async def handle_support_message(message: types.Message, state: FSMContext):
 
     await state.finish()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("view_theme_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("view_theme_"), state="*")
 async def view_theme_handler(callback: types.CallbackQuery):
     """Обработчик просмотра темы"""
-    print(f"view_theme_handler called with data: {callback.data}")
+    print(f"🔍 view_theme_handler called with data: {callback.data} from user {callback.from_user.id}")
     try:
         theme_id = int(callback.data.split("_")[2])
-        print(f"Extracted theme_id: {theme_id}")
+        print(f"🔍 Extracted theme_id: {theme_id}")
         theme = await db.get_catalog_item(theme_id)
-        print(f"Got theme: {theme}")
+        print(f"🔍 Got theme: {theme}")
         
         if not theme:
             print("Theme not found")
@@ -4673,12 +4724,15 @@ async def view_theme_handler(callback: types.CallbackQuery):
     except Exception as e:
         await callback.answer(f"Ошибка: {e}")
 
-@dp.callback_query_handler(lambda c: c.data.startswith("view_category_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("view_category_"), state="*")
 async def view_category_handler(callback: types.CallbackQuery):
     """Обработчик просмотра категории"""
+    print(f"🔍 view_category_handler called with data: {callback.data} from user {callback.from_user.id}")
     try:
         category_id = int(callback.data.split("_")[2])
+        print(f"🔍 Extracted category_id: {category_id}")
         category = await db.get_catalog_item(category_id)
+        print(f"🔍 Got category: {category}")
         
         if not category:
             await callback.answer("Категория не найдена")
@@ -4734,7 +4788,7 @@ async def view_category_handler(callback: types.CallbackQuery):
     except Exception as e:
         await callback.answer(f"Ошибка: {e}")
 
-@dp.callback_query_handler(lambda c: c.data.startswith("view_subcategory_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("view_subcategory_"), state="*")
 async def view_subcategory_handler(callback: types.CallbackQuery):
     """Обработчик просмотра подкатегории"""
     try:
@@ -4990,7 +5044,7 @@ async def view_product_handler(callback: types.CallbackQuery, state: FSMContext)
         print(f"Error in view_product_handler: {e}")
         await callback.answer(f"Ошибка: {e}")
         
-@dp.callback_query_handler(lambda c: c.data.startswith("promo_code_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("promo_code_"), state="*")
 async def promo_code_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик для ввода промокода"""
     try:
@@ -7043,7 +7097,7 @@ async def process_product_promo_code(message: types.Message, state: FSMContext):
         await message.answer(f"Ошибка: {e}")
         await state.finish()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("share_product_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("share_product_"), state="*")
 async def share_product_handler(callback: types.CallbackQuery):
     """Обработчик для создания ссылки на товар"""
     try:
@@ -7083,7 +7137,7 @@ async def share_product_handler(callback: types.CallbackQuery):
         print(f"Error in share_product_handler: {e}")
         await callback.answer(f"Ошибка: {e}")
 
-@dp.callback_query_handler(lambda c: c.data.startswith("buy_product_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("buy_product_"), state="*")
 async def buy_product_handler(callback: types.CallbackQuery):
     """Обработчик покупки товара"""
     try:
@@ -7252,7 +7306,7 @@ async def buy_product_handler(callback: types.CallbackQuery):
         await callback.answer(f"Ошибка: {e}")
 
 # Обработчики для кнопок выбора количества
-@dp.callback_query_handler(lambda c: c.data.startswith("qty_") and not c.data.startswith("qty_inc_days_") and not c.data.startswith("qty_dec_days_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("qty_") and not c.data.startswith("qty_inc_days_") and not c.data.startswith("qty_dec_days_"), state="*")
 async def quantity_handler(callback: types.CallbackQuery):
     """Обработчик кнопок выбора количества"""
     try:
@@ -7369,7 +7423,7 @@ async def quantity_handler(callback: types.CallbackQuery):
         print(f"Error in quantity_handler: {e}")
         await callback.answer(f"Ошибка: {e}")
         
-@dp.callback_query_handler(lambda c: c.data.startswith("order_pay_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("order_pay_"), state="*")
 async def order_payment_method_handler(callback: types.CallbackQuery):
     """Обработчик методов оплаты заказа"""
     try:
@@ -7583,7 +7637,7 @@ async def order_payment_method_handler(callback: types.CallbackQuery):
         print(f"Error in order_payment_method_handler: {e}")
         await callback.answer(f"Ошибка: {e}")
 
-@dp.callback_query_handler(lambda c: c.data.startswith("cancel_order_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("cancel_order_"), state="*")
 async def cancel_order_handler(callback: types.CallbackQuery):
     """Обработчик отмены заказа"""
     try:
@@ -7673,7 +7727,7 @@ async def back_to_order_handler(callback: types.CallbackQuery, state: FSMContext
         print(f"Error in back_to_order_handler: {e}")
         await callback.answer(f"Ошибка: {e}")
 
-@dp.callback_query_handler(lambda c: c.data.startswith("confirm_cancel_order_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("confirm_cancel_order_"), state="*")
 async def confirm_cancel_order_handler(callback: types.CallbackQuery):
     """Обработчик подтверждения отмены заказа"""
     try:
@@ -7708,7 +7762,7 @@ async def confirm_cancel_order_handler(callback: types.CallbackQuery):
         print(f"Error in confirm_cancel_order_handler: {e}")
         await callback.answer(f"Ошибка: {e}")
 
-@dp.callback_query_handler(lambda c: c.data.startswith("confirm_cancel_payment_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("confirm_cancel_payment_"), state="*")
 async def confirm_cancel_payment_handler(callback: types.CallbackQuery):
     """Обработчик подтверждения отмены платежа"""
     code = callback.data.split("_")[-1]
@@ -7730,7 +7784,7 @@ async def confirm_cancel_payment_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("view_parent_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("view_parent_"), state="*")
 async def view_parent_handler(callback: types.CallbackQuery):
     """Обработчик кнопки 'Назад'"""
     try:
@@ -7821,7 +7875,7 @@ async def view_parent_handler(callback: types.CallbackQuery):
         print(f"Error in view_parent_handler: {e}")
         await callback.answer(f"Ошибка: {e}")
 
-@dp.callback_query_handler(lambda c: c.data == "add_theme")
+@dp.callback_query_handler(lambda c: c.data == "add_theme", state="*")
 async def add_theme_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик добавления темы"""
     if not await is_user_admin(callback.from_user.id):
@@ -7843,7 +7897,7 @@ async def add_theme_handler(callback: types.CallbackQuery, state: FSMContext):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("add_category_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("add_category_"), state="*")
 async def add_category_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик добавления категории"""
     if not await is_user_admin(callback.from_user.id):
@@ -7867,7 +7921,7 @@ async def add_category_handler(callback: types.CallbackQuery, state: FSMContext)
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("add_subcategory_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("add_subcategory_"), state="*")
 async def add_subcategory_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик добавления подкатегории"""
     if not await is_user_admin(callback.from_user.id):
@@ -7884,7 +7938,7 @@ async def add_subcategory_handler(callback: types.CallbackQuery, state: FSMConte
     await callback.message.answer("Отправьте ID стикера для новой подкатегории:")
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("add_product_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("add_product_"), state="*")
 async def add_product_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик добавления товара"""
     if not await is_user_admin(callback.from_user.id):
@@ -7995,7 +8049,7 @@ async def back_to_main_handler(callback: types.CallbackQuery, state: FSMContext)
     await callback.answer()
 
 # Обновим обработчик ответа админа в streetshop.py
-@dp.callback_query_handler(lambda c: c.data.startswith("admin_reply_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("admin_reply_"), state="*")
 async def admin_reply_handler(callback: types.CallbackQuery, state: FSMContext):
     parts = callback.data.split("_")
     user_id = int(parts[2])
@@ -8268,7 +8322,7 @@ async def back_to_broadcast_handler(callback: types.CallbackQuery, state: FSMCon
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "broadcast_individual_user")
+@dp.callback_query_handler(lambda c: c.data == "broadcast_individual_user", state="*")
 async def broadcast_individual_user_handler(callback: types.CallbackQuery):
     """Обработчик рассылки отдельному пользователю"""
     # Проверяем права админа
@@ -8284,7 +8338,7 @@ async def broadcast_individual_user_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "broadcast_product")
+@dp.callback_query_handler(lambda c: c.data == "broadcast_product", state="*")
 async def broadcast_product_handler(callback: types.CallbackQuery):
     """Обработчик рассылки товара"""
     # Проверяем права админа
@@ -8394,7 +8448,7 @@ async def broadcast_select_product(callback: types.CallbackQuery, state: FSMCont
         await callback.answer(f"❌ Ошибка: {e}", show_alert=True)
 
 # Обработчики редактирования товара для рассылки
-@dp.callback_query_handler(lambda c: c.data.startswith("broadcast_edit_desc_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("broadcast_edit_desc_"), state="*")
 async def broadcast_edit_description(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик редактирования описания товара для рассылки"""
     try:
@@ -8417,7 +8471,7 @@ async def broadcast_edit_description(callback: types.CallbackQuery, state: FSMCo
     except Exception as e:
         await callback.answer(f"❌ Ошибка: {e}", show_alert=True)
 
-@dp.callback_query_handler(lambda c: c.data.startswith("broadcast_edit_photo_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("broadcast_edit_photo_"), state="*")
 async def broadcast_edit_photo(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик редактирования фото товара для рассылки"""
     try:
@@ -8438,7 +8492,7 @@ async def broadcast_edit_photo(callback: types.CallbackQuery, state: FSMContext)
     except Exception as e:
         await callback.answer(f"❌ Ошибка: {e}", show_alert=True)
 
-@dp.callback_query_handler(lambda c: c.data.startswith("broadcast_edit_preview_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("broadcast_edit_preview_"), state="*")
 async def broadcast_edit_preview(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик редактирования preview ссылки товара для рассылки"""
     try:
@@ -8909,7 +8963,7 @@ async def show_broadcast_product_preview(message_or_callback, state: FSMContext,
         await state.finish()
 
 # Добавляем тестовый обработчик для отладки broadcast функциональности
-@dp.callback_query_handler(lambda c: c.data.startswith("test_broadcast_debug_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("test_broadcast_debug_"), state="*")
 async def test_broadcast_debug(callback: types.CallbackQuery):
     """Тестовый обработчик для отладки broadcast функциональности"""
     product_id = callback.data.split("_")[-1]
@@ -8917,7 +8971,7 @@ async def test_broadcast_debug(callback: types.CallbackQuery):
     await callback.answer(f"Test debug: product {product_id}", show_alert=True)
 
 # Добавляем обработчик для отладки всех callback'ов
-@dp.callback_query_handler(lambda c: c.data.startswith("broadcast_product_confirm_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("broadcast_product_confirm_"), state="*")
 async def broadcast_product_confirm_debug(callback: types.CallbackQuery):
     """Отладочный обработчик для broadcast_product_confirm"""
     print(f"DEBUG: broadcast_product_confirm handler called with data: {callback.data}")
@@ -8925,7 +8979,7 @@ async def broadcast_product_confirm_debug(callback: types.CallbackQuery):
     return await broadcast_product_confirm(callback, FSMContext)
 
 # Обработчик подтверждения рассылки товара
-@dp.callback_query_handler(lambda c: c.data.startswith("broadcast_product_confirm_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("broadcast_product_confirm_"), state="*")
 async def broadcast_product_confirm(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик подтверждения рассылки товара - немедленная рассылка всем пользователям"""
     print(f"=== BROADCAST PRODUCT CONFIRM HANDLER CALLED ===")
@@ -9064,7 +9118,7 @@ async def broadcast_product_confirm(callback: types.CallbackQuery, state: FSMCon
 #     pass
 
 # Обработчики для редактирования реквизитов
-@dp.callback_query_handler(lambda c: c.data == "edit_sbp_phone")
+@dp.callback_query_handler(lambda c: c.data == "edit_sbp_phone", state="*")
 async def edit_sbp_phone_handler(callback: types.CallbackQuery):
     # Проверяем права админа
     if not await is_user_admin(callback.from_user.id):
@@ -9078,7 +9132,7 @@ async def edit_sbp_phone_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "edit_card")
+@dp.callback_query_handler(lambda c: c.data == "edit_card", state="*")
 async def edit_card_handler(callback: types.CallbackQuery):
     # Проверяем права админа
     if not await is_user_admin(callback.from_user.id):
@@ -9092,7 +9146,7 @@ async def edit_card_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "edit_crypto")
+@dp.callback_query_handler(lambda c: c.data == "edit_crypto", state="*")
 async def edit_crypto_handler(callback: types.CallbackQuery):
     # Проверяем права админа
     if not await is_user_admin(callback.from_user.id):
@@ -9106,7 +9160,7 @@ async def edit_crypto_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "edit_stars_url")
+@dp.callback_query_handler(lambda c: c.data == "edit_stars_url", state="*")
 async def edit_stars_url_handler(callback: types.CallbackQuery):
     # Проверяем права админа
     if not await is_user_admin(callback.from_user.id):
@@ -9120,7 +9174,7 @@ async def edit_stars_url_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "edit_stars_provider_token")
+@dp.callback_query_handler(lambda c: c.data == "edit_stars_provider_token", state="*")
 async def edit_stars_provider_token_handler(callback: types.CallbackQuery):
     # Проверяем права админа
     if not await is_user_admin(callback.from_user.id):
@@ -9137,7 +9191,7 @@ async def edit_stars_provider_token_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "edit_cryptobot_url")
+@dp.callback_query_handler(lambda c: c.data == "edit_cryptobot_url", state="*")
 async def edit_cryptobot_handler(callback: types.CallbackQuery):
     # Проверяем права админа
     if not await is_user_admin(callback.from_user.id):
@@ -9154,7 +9208,7 @@ async def edit_cryptobot_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "edit_bitpapa_token")
+@dp.callback_query_handler(lambda c: c.data == "edit_bitpapa_token", state="*")
 async def edit_bitpapa_token_handler(callback: types.CallbackQuery):
     """Обработчик редактирования BitPAPA API токена"""
     # Проверяем права админа
@@ -9176,7 +9230,7 @@ async def edit_bitpapa_token_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "manage_payment_methods")
+@dp.callback_query_handler(lambda c: c.data == "manage_payment_methods", state="*")
 async def manage_payment_methods_handler(callback: types.CallbackQuery):
     """Обработчик управления методами оплаты"""
     # Проверяем права админа
@@ -9214,7 +9268,7 @@ async def manage_payment_methods_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "configure_payment_layout")
+@dp.callback_query_handler(lambda c: c.data == "configure_payment_layout", state="*")
 async def configure_payment_layout_handler(callback: types.CallbackQuery):
     """Обработчик настройки расположения методов оплаты"""
     # Проверяем права админа
@@ -9250,7 +9304,7 @@ async def configure_payment_layout_handler(callback: types.CallbackQuery):
                     )
                 )
 # Добавляем обработчик для кнопки "Настроить расположение методов" в админке
-@dp.callback_query_handler(lambda c: c.data == "manage_payment_layout")
+@dp.callback_query_handler(lambda c: c.data == "manage_payment_layout", state="*")
 async def manage_payment_layout_handler(callback: types.CallbackQuery):
     """Обработчик для настройки расположения методов оплаты"""
     # Проверяем права админа
@@ -9287,7 +9341,7 @@ async def configure_payment_layout_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("edit_payment_layout_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("edit_payment_layout_"), state="*")
 async def edit_payment_layout_handler(callback: types.CallbackQuery):
     """Обработчик редактирования расположения конкретного метода оплаты"""
     # Проверяем права админа
@@ -9345,7 +9399,7 @@ async def edit_payment_layout_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("set_payment_row_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("set_payment_row_"), state="*")
 async def set_payment_row_handler(callback: types.CallbackQuery):
     """Обработчик установки ряда для метода оплаты"""
     # Проверяем права админа
@@ -9374,7 +9428,7 @@ async def set_payment_row_handler(callback: types.CallbackQuery):
     # Возвращаем к настройке расположения
     await edit_payment_layout_handler(callback)
 
-@dp.callback_query_handler(lambda c: c.data.startswith("set_payment_pos_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("set_payment_pos_"), state="*")
 async def set_payment_pos_handler(callback: types.CallbackQuery):
     """Обработчик установки позиции для метода оплаты"""
     # Проверяем права админа
@@ -9403,7 +9457,7 @@ async def set_payment_pos_handler(callback: types.CallbackQuery):
     # Возвращаем к настройке расположения
     await edit_payment_layout_handler(callback)
 
-@dp.callback_query_handler(lambda c: c.data.startswith("toggle_payment_method_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("toggle_payment_method_"), state="*")
 async def toggle_payment_method_handler(callback: types.CallbackQuery):
     """Обработчик включения/отключения метода оплаты"""
     # Проверяем права админа
@@ -9768,7 +9822,7 @@ async def mmnt_command_handler(message: types.Message):
         parse_mode="Markdown"
     )
 
-@dp.callback_query_handler(lambda c: c.data == "broadcast_all_users")
+@dp.callback_query_handler(lambda c: c.data == "broadcast_all_users", state="*")
 async def broadcast_all_users_handler(callback: types.CallbackQuery):
     """Обработчик рассылки всем пользователям"""
     # Проверяем права админа
@@ -9918,7 +9972,7 @@ async def send_command_handler(message: types.Message):
     except Exception as e:
         await message.answer(f"❌ Ошибка: {e}")
 
-@dp.callback_query_handler(lambda c: c.data == "edit_welcome_message")
+@dp.callback_query_handler(lambda c: c.data == "edit_welcome_message", state="*")
 async def edit_welcome_message_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик кнопки 'Изменить /start'"""
     # Проверяем права админа
@@ -9943,7 +9997,7 @@ async def edit_welcome_message_handler(callback: types.CallbackQuery, state: FSM
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "edit_welcome_sticker")
+@dp.callback_query_handler(lambda c: c.data == "edit_welcome_sticker", state="*")
 async def edit_welcome_sticker_handler(callback: types.CallbackQuery):
     """Обработчик изменения стикера"""
     # Проверяем права админа
@@ -9958,7 +10012,7 @@ async def edit_welcome_sticker_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "edit_welcome_photo")
+@dp.callback_query_handler(lambda c: c.data == "edit_welcome_photo", state="*")
 async def edit_welcome_photo_handler(callback: types.CallbackQuery):
     """Обработчик изменения фото"""
     # Проверяем права админа
@@ -9973,7 +10027,7 @@ async def edit_welcome_photo_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "edit_catalog_photo")
+@dp.callback_query_handler(lambda c: c.data == "edit_catalog_photo", state="*")
 async def edit_catalog_photo_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик изменения фото каталога"""
     # Проверяем права админа
@@ -9998,7 +10052,7 @@ async def edit_catalog_photo_handler(callback: types.CallbackQuery, state: FSMCo
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "edit_bonus_system")
+@dp.callback_query_handler(lambda c: c.data == "edit_bonus_system", state="*")
 async def edit_bonus_system_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик редактирования системы бонусов"""
     # Проверяем права админа
@@ -10026,7 +10080,7 @@ async def edit_bonus_system_handler(callback: types.CallbackQuery, state: FSMCon
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "edit_bonus_sticker")
+@dp.callback_query_handler(lambda c: c.data == "edit_bonus_sticker", state="*")
 async def edit_bonus_sticker_handler(callback: types.CallbackQuery):
     """Обработчик изменения стикера бонусов"""
     if not await is_user_admin(callback.from_user.id):
@@ -10043,7 +10097,7 @@ async def edit_bonus_sticker_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "edit_bonus_photo")
+@dp.callback_query_handler(lambda c: c.data == "edit_bonus_photo", state="*")
 async def edit_bonus_photo_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик изменения фото бонусов"""
     if not await is_user_admin(callback.from_user.id):
@@ -10061,7 +10115,7 @@ async def edit_bonus_photo_handler(callback: types.CallbackQuery, state: FSMCont
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "edit_bonus_description")
+@dp.callback_query_handler(lambda c: c.data == "edit_bonus_description", state="*")
 async def edit_bonus_description_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик изменения описания бонусов"""
     if not await is_user_admin(callback.from_user.id):
@@ -10081,7 +10135,7 @@ async def edit_bonus_description_handler(callback: types.CallbackQuery, state: F
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "edit_welcome_text")
+@dp.callback_query_handler(lambda c: c.data == "edit_welcome_text", state="*")
 async def edit_welcome_text_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик изменения текста"""
     # Проверяем права админа
@@ -10119,7 +10173,7 @@ async def back_to_edit_menu_handler(callback: types.CallbackQuery, state: FSMCon
 # Обработчики состояний для редактирования приветственного сообщения
 
 # Обработчики для управления администраторами
-@dp.callback_query_handler(lambda c: c.data == "add_admin")
+@dp.callback_query_handler(lambda c: c.data == "add_admin", state="*")
 async def add_admin_handler(callback: types.CallbackQuery):
     """Обработчик кнопки 'Добавить админа'"""
     # Проверяем права админа
@@ -10137,7 +10191,7 @@ async def add_admin_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "remove_admin")
+@dp.callback_query_handler(lambda c: c.data == "remove_admin", state="*")
 async def remove_admin_handler(callback: types.CallbackQuery):
     """Обработчик кнопки 'Удалить админа'"""
     # Проверяем права админа
@@ -10156,7 +10210,7 @@ async def remove_admin_handler(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "list_admins")
+@dp.callback_query_handler(lambda c: c.data == "list_admins", state="*")
 async def list_admins_handler(callback: types.CallbackQuery):
     """Обработчик кнопки 'Список админов'"""
     # Проверяем права админа
@@ -11038,7 +11092,7 @@ async def process_catalog_expiration_days(message: types.Message, state: FSMCont
         await message.answer("❌ Ошибка: Введите числа через запятую (например: 30,60,90) или используйте кнопку 'Пропустить'.")
 
 # Обработчики для выбора дней действия
-@dp.callback_query_handler(lambda c: c.data.startswith("days_inc_") or c.data.startswith("days_dec_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("days_inc_") or c.data.startswith("days_dec_"), state="*")
 async def handle_days_change(callback: types.CallbackQuery):
     """Обработка изменения количества дней"""
     try:
@@ -11076,7 +11130,7 @@ async def handle_days_change(callback: types.CallbackQuery):
         print(f"Error in handle_days_change: {e}")
         await callback.answer("Ошибка при изменении количества дней")
 
-@dp.callback_query_handler(lambda c: c.data in ["days_min_reached", "days_max_reached"])
+@dp.callback_query_handler(lambda c: c.data in ["days_min_reached", "days_max_reached"], state="*")
 async def handle_days_limit_reached(callback: types.CallbackQuery):
     """Обработка достижения мин/макс количества дней"""
     if callback.data == "days_min_reached":
@@ -11085,7 +11139,7 @@ async def handle_days_limit_reached(callback: types.CallbackQuery):
         await callback.answer("Максимальное количество дней достигнуто")
 
 # Обработчики для количества товаров с днями действия
-@dp.callback_query_handler(lambda c: c.data.startswith("qty_inc_days_") or c.data.startswith("qty_dec_days_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("qty_inc_days_") or c.data.startswith("qty_dec_days_"), state="*")
 async def handle_quantity_change_with_days(callback: types.CallbackQuery):
     """Обработка изменения количества для товаров с днями действия"""
     try:
@@ -11128,7 +11182,7 @@ async def handle_quantity_change_with_days(callback: types.CallbackQuery):
         print(f"Error in handle_quantity_change_with_days: {e}")
         await callback.answer("Ошибка при изменении количества")
 
-@dp.callback_query_handler(lambda c: c.data in ["qty_min_reached", "qty_max_reached"])
+@dp.callback_query_handler(lambda c: c.data in ["qty_min_reached", "qty_max_reached"], state="*")
 async def handle_quantity_limit_reached(callback: types.CallbackQuery):
     """Обработка достижения мин/макс количества"""
     if callback.data == "qty_min_reached":
@@ -11620,7 +11674,7 @@ async def create_catalog_item(message: types.Message, state: FSMContext):
     await state.finish()
 
 # Обработчики для массовой загрузки файлов
-@dp.callback_query_handler(lambda c: c.data.startswith("bulk_upload_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("bulk_upload_"), state="*")
 async def bulk_upload_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик массовой загрузки файлов для товаров"""
     if not await is_user_admin(callback.from_user.id):
@@ -11845,7 +11899,7 @@ async def cancel_bulk_create(callback: types.CallbackQuery, state: FSMContext):
     await state.finish()
 
 # Обработчики для поиска в 3x6 сетке
-@dp.callback_query_handler(lambda c: c.data.startswith('search_in_category_'))
+@dp.callback_query_handler(lambda c: c.data.startswith('search_in_category_'), state="*")
 async def handle_search_in_category(callback_query: types.CallbackQuery):
     """Обработчик начала поиска в категории"""
     await callback_query.answer()
@@ -11944,7 +11998,7 @@ async def process_search_query(message: types.Message, state: FSMContext):
     await state.finish()
 
 # Обработчик для пагинации 3x6 сетки
-@dp.callback_query_handler(lambda c: c.data.startswith('grid_page_'))
+@dp.callback_query_handler(lambda c: c.data.startswith('grid_page_'), state="*")
 async def handle_grid_pagination(callback_query: types.CallbackQuery):
     """Обработчик пагинации для 3x6 сетки"""
     await callback_query.answer()
@@ -12342,7 +12396,7 @@ async def process_purchase_condition_reward(message: types.Message, state: FSMCo
     
     await state.finish()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("add_bonus_category"))
+@dp.callback_query_handler(lambda c: c.data.startswith("add_bonus_category"), state="*")
 async def add_bonus_category_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик добавления новой категории бонусов"""
     if not await is_user_admin(callback.from_user.id):
@@ -12378,7 +12432,7 @@ async def add_bonus_category_handler(callback: types.CallbackQuery, state: FSMCo
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "show_bonus_sections")
+@dp.callback_query_handler(lambda c: c.data == "show_bonus_sections", state="*")
 async def show_bonus_sections_handler(callback: types.CallbackQuery):
     """Обработчик показа списка разделов бонусов"""
     try:
@@ -12421,7 +12475,7 @@ async def show_bonus_sections_handler(callback: types.CallbackQuery):
 
 # Обработчики для создания заданий в бонусной системе
 
-@dp.callback_query_handler(lambda c: c.data.startswith("create_bonus_task_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("create_bonus_task_"), state="*")
 async def create_bonus_task_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик создания нового задания"""
     if not await is_user_admin(callback.from_user.id):
@@ -12458,6 +12512,62 @@ async def create_bonus_task_handler(callback: types.CallbackQuery, state: FSMCon
     )
     await callback.answer()
 
+@dp.callback_query_handler(lambda c: c.data == "back_to_task_creation", state="*")
+async def back_to_task_creation_handler(callback: types.CallbackQuery, state: FSMContext):
+    """Возврат к выбору типа задания в бонусной системе (кнопка «🔙 Назад»)"""
+    try:
+        if not await is_user_admin(callback.from_user.id):
+            await callback.answer("❌ У вас нет прав администратора", show_alert=True)
+            return
+
+        async with state.proxy() as data:
+            section_id = data.get('section_id')
+
+        if not section_id:
+            await callback.answer("❌ Категория задания потеряна, начните заново", show_alert=True)
+            return
+
+        # Сбрасываем промежуточные данные незавершённого создания задания
+        async with state.proxy() as data:
+            for key in ('task_type', 'task_name', 'reward'):
+                try:
+                    data.pop(key, None)
+                except Exception:
+                    pass
+
+        await BonusSystemStates.waiting_for_task_type_selection.set()
+
+        section = await db.get_bonus_section(section_id)
+        section_name = section[1] if section else f"ID {section_id}"
+
+        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+        keyboard = InlineKeyboardMarkup(row_width=1)
+        keyboard.add(
+            InlineKeyboardButton("💰 Покупки на сумму", callback_data="task_type_purchase"),
+            InlineKeyboardButton("👥 Пригласи друзей", callback_data="task_type_referral"),
+            InlineKeyboardButton("🛋️ Купить товар", callback_data="task_type_product"),
+            InlineKeyboardButton("⚙️ Произвольное задание", callback_data="task_type_custom"),
+            InlineKeyboardButton("🔙 Назад", callback_data=f"view_bonus_section_{section_id}")
+        )
+
+        text = (
+            f"📋 Создание задания\n"
+            f"📁 Категория: {section_name}\n\n"
+            f"Выберите тип задания:"
+        )
+
+        if callback.message.text or callback.message.caption:
+            try:
+                await callback.message.edit_text(text, reply_markup=keyboard)
+            except Exception:
+                await callback.message.answer(text, reply_markup=keyboard)
+        else:
+            await callback.message.answer(text, reply_markup=keyboard)
+
+        await callback.answer()
+    except Exception as e:
+        print(f"Error in back_to_task_creation_handler: {e}")
+        await callback.answer(f"❌ Ошибка: {e}", show_alert=True)
 @dp.callback_query_handler(lambda c: c.data.startswith("task_type_"), state=BonusSystemStates.waiting_for_task_type_selection)
 async def select_task_type_handler(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик выбора типа задания"""
@@ -12714,7 +12824,7 @@ async def create_task_with_params(message: types.Message, data: dict):
 # УДАЛЕНЫ СТАРЫЕ ОБРАБОТЧИКИ: process_bonus_section_name, process_bonus_section_description, process_bonus_section_photo_text
 # Теперь создание категорий бонусов использует стандартный workflow создания категорий каталога
 
-@dp.callback_query_handler(lambda c: c.data.startswith("view_bonus_section_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("view_bonus_section_"), state="*")
 async def view_bonus_section_handler(callback: types.CallbackQuery):
     """Обработчик просмотра раздела бонусов"""
     try:
@@ -12893,7 +13003,7 @@ async def view_bonus_section_handler(callback: types.CallbackQuery):
     await callback.answer()
 
 
-@dp.callback_query_handler(lambda c: c.data == "show_bonus_sections")
+@dp.callback_query_handler(lambda c: c.data == "show_bonus_sections", state="*")
 async def show_bonus_sections_handler(callback: types.CallbackQuery):
     """Обработчик показа списка разделов бонусов"""
     try:
@@ -12935,7 +13045,7 @@ async def show_bonus_sections_handler(callback: types.CallbackQuery):
     await callback.answer()
 
 
-@dp.callback_query_handler(lambda c: c.data.startswith("view_my_tickets"))
+@dp.callback_query_handler(lambda c: c.data.startswith("view_my_tickets"), state="*")
 async def view_my_tickets_handler(callback: types.CallbackQuery):
     """Обработчик показа информации о билетах пользователя"""
     try:
@@ -12988,7 +13098,7 @@ async def view_my_tickets_handler(callback: types.CallbackQuery):
 # УДАЛЕН create_purchase_conditions_handler - кнопка "Создать условия покупок" удалена
 
 
-@dp.callback_query_handler(lambda c: c.data.startswith("complete_task_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("complete_task_"), state="*")
 async def complete_task_handler(callback: types.CallbackQuery):
     """Обработчик выполнения задания"""
     try:
@@ -13036,7 +13146,7 @@ async def complete_task_handler(callback: types.CallbackQuery):
         await callback.answer(f"❌ Ошибка: {e}", show_alert=True)
 
 
-@dp.callback_query_handler(lambda c: c.data.startswith("execute_task_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("execute_task_"), state="*")
 async def execute_task_handler(callback: types.CallbackQuery):
     """Обработчик выполнения задания - переходит к товару"""
     try:
@@ -13110,7 +13220,7 @@ async def execute_task_handler(callback: types.CallbackQuery):
         print(f"Ошибка в execute_task_handler: {e}")
         await callback.answer(f"❌ Ошибка: {e}", show_alert=True)
 
-@dp.callback_query_handler(lambda c: c.data.startswith("complete_bonus_task_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("complete_bonus_task_"), state="*")
 async def complete_bonus_task_handler(callback: types.CallbackQuery):
     """Обработчик выполнения новых типов заданий"""
     try:
@@ -13168,7 +13278,7 @@ from keyboards import bonus_sections_list_kb, admin_management_kb, back_to_admin
 # smart_cleanup_after_send is defined in this file
 
 
-@dp.callback_query_handler(lambda c: c.data.startswith("view_task_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("view_task_"), state="*")
 async def view_task_handler(callback: types.CallbackQuery):
     """Обработчик просмотра задания"""
     try:
@@ -13593,6 +13703,21 @@ async def on_startup(dp):
     """Действия при запуске бота"""
     status_lines = []
     
+    # Удаляем webhook если он установлен
+    try:
+        await bot.delete_webhook(drop_pending_updates=True)
+        success_msg = "✅ Webhook удален"
+        print(success_msg)
+        status_lines.append(success_msg)
+    except Exception as e:
+        error_msg = f"⚠️ Ошибка удаления webhook: {e}"
+        print(error_msg)
+        status_lines.append(error_msg)
+    
+    # Без callback_query в allowed_updates инлайн-кнопки не приходят боту вообще,
+    # поэтому принудительно перезаписываем настройку при каждом старте.
+    status_lines.append(await reset_allowed_updates())
+
     # Получаем системную информацию
     system_info = await get_system_info()
     
@@ -13890,7 +14015,7 @@ async def safe_start_polling():
             print(f"🔄 Попытка запуска #{retry_count + 1}")
             
             # Запускаем polling
-            await dp.start_polling()
+            await dp.start_polling(allowed_updates=ALLOWED_UPDATES)
             
         except TerminatedByOtherGetUpdates:
             print("❌ Обнаружен конфликт с другим экземпляром бота")
@@ -13956,6 +14081,7 @@ def main():
                     skip_updates=True,
                     on_startup=on_startup,
                     on_shutdown=on_shutdown,
+                    allowed_updates=ALLOWED_UPDATES,
                     timeout=20,
                     relax=0.1,
                     fast=True
@@ -13997,7 +14123,7 @@ def main():
 # Обработчики для новых кнопок
 
 # Обработчики для бонусов
-@dp.callback_query_handler(lambda c: c.data == "skip_bonus_sticker")
+@dp.callback_query_handler(lambda c: c.data == "skip_bonus_sticker", state="*")
 async def skip_bonus_sticker_handler(callback: types.CallbackQuery, state: FSMContext):
     """Пропустить стикер для бонусов"""
     async with state.proxy() as data:
@@ -14011,7 +14137,7 @@ async def skip_bonus_sticker_handler(callback: types.CallbackQuery, state: FSMCo
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "delete_bonus_sticker")
+@dp.callback_query_handler(lambda c: c.data == "delete_bonus_sticker", state="*")
 async def delete_bonus_sticker_handler(callback: types.CallbackQuery, state: FSMContext):
     """Удалить стикер для бонусов"""
     async with state.proxy() as data:
@@ -14025,7 +14151,7 @@ async def delete_bonus_sticker_handler(callback: types.CallbackQuery, state: FSM
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "skip_bonus_photo")
+@dp.callback_query_handler(lambda c: c.data == "skip_bonus_photo", state="*")
 async def skip_bonus_photo_handler(callback: types.CallbackQuery, state: FSMContext):
     """Пропустить фото для бонусов"""
     async with state.proxy() as data:
@@ -14039,7 +14165,7 @@ async def skip_bonus_photo_handler(callback: types.CallbackQuery, state: FSMCont
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "delete_bonus_photo")
+@dp.callback_query_handler(lambda c: c.data == "delete_bonus_photo", state="*")
 async def delete_bonus_photo_handler(callback: types.CallbackQuery, state: FSMContext):
     """Удалить фото для бонусов"""
     async with state.proxy() as data:
@@ -14053,7 +14179,7 @@ async def delete_bonus_photo_handler(callback: types.CallbackQuery, state: FSMCo
     )
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "cancel_bonus_edit")
+@dp.callback_query_handler(lambda c: c.data == "cancel_bonus_edit", state="*")
 async def cancel_bonus_edit_handler(callback: types.CallbackQuery, state: FSMContext):
     """Отменить редактирование бонусов"""
     await state.finish()
@@ -14061,7 +14187,7 @@ async def cancel_bonus_edit_handler(callback: types.CallbackQuery, state: FSMCon
     await callback.answer()
 
 # Обработчики для файлов по дням
-@dp.callback_query_handler(lambda c: c.data.startswith("files_done_day_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("files_done_day_"), state="*")
 async def files_done_day_handler(callback: types.CallbackQuery, state: FSMContext):
     """Завершить загрузку файлов для текущего дня"""
     # Извлекаем номер дня из callback_data
@@ -14097,7 +14223,7 @@ async def files_done_day_handler(callback: types.CallbackQuery, state: FSMContex
     
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data.startswith("skip_files_day_"))
+@dp.callback_query_handler(lambda c: c.data.startswith("skip_files_day_"), state="*")
 async def skip_files_day_handler(callback: types.CallbackQuery, state: FSMContext):
     """Пропустить загрузку файлов для текущего дня"""
     # Извлекаем номер дня из callback_data
@@ -14129,13 +14255,13 @@ async def skip_files_day_handler(callback: types.CallbackQuery, state: FSMContex
     
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "files_done")
+@dp.callback_query_handler(lambda c: c.data == "files_done", state="*")
 async def files_done_handler(callback: types.CallbackQuery, state: FSMContext):
     """Завершить загрузку файлов"""
     await create_catalog_item(callback.message, state)
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "skip_task_photo")
+@dp.callback_query_handler(lambda c: c.data == "skip_task_photo", state="*")
 async def skip_task_photo_handler(callback: types.CallbackQuery, state: FSMContext):
     """Пропустить фото для задания"""
     async with state.proxy() as data:
@@ -14147,7 +14273,7 @@ async def skip_task_photo_handler(callback: types.CallbackQuery, state: FSMConte
     await BonusSystemStates.waiting_for_task_name.set()
     await callback.answer()
 
-@dp.callback_query_handler(lambda c: c.data == "cancel_bonus_task")
+@dp.callback_query_handler(lambda c: c.data == "cancel_bonus_task", state="*")
 async def cancel_bonus_task_handler(callback: types.CallbackQuery, state: FSMContext):
     """Отменить создание задания бонусов"""
     await state.finish()
@@ -14346,13 +14472,40 @@ async def set_token_command_handler(message: types.Message):
         
         await message.answer(
             f"✅ **Токен {token_type} обновлен!**\n\n"
-            f"📝 **Новое значение:** `{display_token}`",
+            f"📌 **Тип:** `{token_type}`\n"
+            f"🔑 **Токен:** `{display_token}`",
             parse_mode="Markdown"
         )
         
     except Exception as e:
         await message.answer(f"❌ Ошибка: {e}")
 
+# General callback handler for logging (must be at the end to not intercept specific handlers)
+@dp.callback_query_handler()
+async def log_all_callbacks(callback: types.CallbackQuery):
+    """Логирование всех callback для отладки"""
+    print(f"🔍 CALLBACK RECEIVED: {callback.data} from user {callback.from_user.id}")
+    # Не отвечаем на callback, чтобы другие обработчики могли сработать
+    # Если ни один обработчик не сработал, тогда отвечаем
+    try:
+        await callback.answer()
+    except:
+        pass
+
+@dp.callback_query_handler(state="*")
+async def debug_all_callbacks(callback: types.CallbackQuery, state: FSMContext):
+    print(f"DEBUG UNHANDLED CALLBACK: {callback.data} FROM {callback.from_user.id}")
+    # Клиентам не показываем debug-алерты — просто гасим «часики» на кнопке.
+    try:
+        await callback.answer()
+    except Exception:
+        pass
+
 if __name__ == '__main__':
-    main()
-    main()
+    from aiogram.utils import executor
+    executor.start_polling(
+        dp,
+        on_startup=on_startup,
+        skip_updates=True,
+        allowed_updates=ALLOWED_UPDATES,
+    )

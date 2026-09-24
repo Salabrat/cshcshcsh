@@ -876,6 +876,7 @@ body.tg-loaded:has(.tg-image-fullscreen.active) .tg-bottom-nav {
     background: linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.4) 50%, transparent 100%);
     z-index: 1;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    pointer-events: none;
 }
 
 /* Dark Theme for Catalog */
@@ -1453,6 +1454,7 @@ body.tg-dark .tg-size-btn.active {
     text-transform: uppercase;
     letter-spacing: 0.5px;
     z-index: 1;
+    pointer-events: none;
 }
 
 .tg-category-product-badge.preorder {

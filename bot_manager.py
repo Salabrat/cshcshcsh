@@ -104,8 +104,12 @@ def start_bot():
     try:
         # Start the bot
         if os.name == 'nt':  # Windows
+            # Use DETACHED_PROCESS and CREATE_NEW_PROCESS_GROUP so it survives
+            DETACHED_PROCESS = 0x00000008
+            CREATE_NEW_PROCESS_GROUP = 0x00000200
+            flags = DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
             subprocess.Popen([sys.executable, 'streetshop.py'], 
-                           cwd=os.getcwd())
+                           cwd=os.getcwd(), creationflags=flags)
         else:  # Unix-like
             subprocess.Popen([sys.executable, 'streetshop.py'], 
                            cwd=os.getcwd())
