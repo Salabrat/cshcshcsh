@@ -330,6 +330,113 @@ async def main():
     check("described theme: text preserved",
           any("Описание темы" in t for t in non_empty_texts()), repr(non_empty_texts()))
 
+    print()
+    print("=" * 70)
+    print("SCENARIO 7: GIF/Animation cover support (auto-detected, cached)")
+    print("=" * 70)
+    reset_sent()
+    s.MEDIA_TYPE_CACHE.clear()
+    gif_file_id = "CgACAgIAAxkBAAIEXAMPLE_GIF_ANIMATION_ID_1234567890"
+
+    # Имитируем поведение Telegram: send_photo для GIF падает, send_animation проходит
+    async def mock_send_photo(*a, **kw):
+        p = kw.get("photo") or (a[1] if len(a) > 1 else None)
+        if p == gif_file_id:
+            raise Exception("Bad Request: wrong file identifier/HTTP URL specified")
+        SENT_PHOTOS.append((a, kw))
+        return types.Message(message_id=901, date=1, chat=types.Chat(id=CHAT_ID, type="private"))
+
+    sent_animations = []
+
+    async def mock_send_animation(*a, **kw):
+        sent_animations.append((a, kw))
+        return types.Message(message_id=902, date=1, chat=types.Chat(id=CHAT_ID, type="private"))
+
+    s.bot.send_photo = mock_send_photo
+    s.bot.send_animation = mock_send_animation
+
+    FAKE_DB.item = make_item(
+        200, "category", "GIF Категория", description="Товары с GIF",
+        sticker_id=STICKER, photo_id=gif_file_id
+    )
+    FAKE_DB.children = []
+    await send_callback("view_category_200")
+
+    check("gif cover: animation sent instead of failing", len(sent_animations) == 1,
+          "%d animations" % len(sent_animations))
+    check("gif cover: sticker sent once", len(SENT_STICKERS) == 1,
+          "%d stickers" % len(SENT_STICKERS))
+    check("gif cover: cached type is animation",
+          s.MEDIA_TYPE_CACHE.get(gif_file_id) == "animation",
+          str(s.MEDIA_TYPE_CACHE.get(gif_file_id)))
+
+    print()
+    print("=" * 70)
+    print("SCENARIO 8: MP4/Video cover support (auto-detected, cached)")
+    print("=" * 70)
+    reset_sent()
+    sent_animations.clear()
+    video_file_id = "BAACAgIAAxkBAAIEXAMPLE_VIDEO_MP4_ID_1234567890"
+
+    sent_videos = []
+
+    # Для видео: photo и animation должны падать, а video проходить
+    async def mock_send_photo_fail(*a, **kw):
+        raise Exception("Bad Request: can't parse photo")
+
+    async def mock_send_anim_fail(*a, **kw):
+        raise Exception("Bad Request: can't parse animation")
+
+    async def mock_send_video(*a, **kw):
+        sent_videos.append((a, kw))
+        return types.Message(message_id=903, date=1, chat=types.Chat(id=CHAT_ID, type="private"))
+
+    s.bot.send_photo = mock_send_photo_fail
+    s.bot.send_animation = mock_send_anim_fail
+    s.bot.send_video = mock_send_video
+
+    FAKE_DB.item = make_item(
+        201, "theme", "Видео Тема", description="Раздел с видео",
+        sticker_id=None, photo_id=video_file_id
+    )
+    FAKE_DB.children = []
+    await send_callback("view_theme_201")
+
+    check("video cover: video sent", len(sent_videos) == 1, "%d videos" % len(sent_videos))
+    check("video cover: cached type is video",
+          s.MEDIA_TYPE_CACHE.get(video_file_id) == "video",
+          str(s.MEDIA_TYPE_CACHE.get(video_file_id)))
+
+    print()
+    print("=" * 70)
+    print("SCENARIO 9: Invalid media falls back to text gracefully (no crash)")
+    print("=" * 70)
+    reset_sent()
+    dead_file_id = "DEAD_FILE_ID_THAT_FAILS_EVERYTHING_1234567890"
+
+    async def mock_fail_all(*a, **kw):
+        raise Exception("Bad Request: file is dead")
+
+    s.bot.send_photo = mock_fail_all
+    s.bot.send_animation = mock_fail_all
+    s.bot.send_video = mock_fail_all
+    s.bot.send_document = mock_fail_all
+
+    FAKE_DB.item = make_item(
+        202, "category", "Битая Обложка", description="Раздел с битой ссылкой",
+        sticker_id=STICKER, photo_id=dead_file_id
+    )
+    FAKE_DB.children = []
+    await send_callback("view_category_202")
+
+    check("dead cover: sticker still sent", len(SENT_STICKERS) == 1,
+          "%d stickers" % len(SENT_STICKERS))
+    check("dead cover: fallback to text succeeded", len(non_empty_texts()) >= 1,
+          repr(non_empty_texts()))
+    check("dead cover: fallback text has section content",
+          any("Битая Обложка" in t or "Раздел с битой ссылкой" in t for t in non_empty_texts()),
+          repr(non_empty_texts()))
+
     # восстановление
     s.db = saved_db
     database.db = saved_db

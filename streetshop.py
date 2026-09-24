@@ -503,99 +503,184 @@ DEFAULT_PAYMENT_DETAILS = {
 }
 
 def is_valid_telegram_file_id(file_id: str) -> bool:
-    """Проверяет, является ли строка валидным Telegram file ID"""
+    """Проверяет, является ли строка валидным Telegram file ID.
+
+    Поддерживает file_id для фото, анимаций (GIF), видео и документов.
+    """
     if not file_id or not isinstance(file_id, str):
         return False
-    
-    # Минимальная длина Telegram file ID
+
+    # Минимальная длина Telegram file ID обычно >= 20 символов
     if len(file_id) < 20:
         return False
-    
-    # Telegram file ID содержит только специальные символы
+
+    # Telegram file ID содержит только base64url-подобные символы
     allowed_chars = set('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_')
     if not all(c in allowed_chars for c in file_id):
         return False
-    
-    # Обычно Telegram file ID начинается с определенных префиксов для фото
-    photo_prefixes = ['AgAC', 'BAADAgAD', 'BQADAgAD', 'CAADAgAD', 'BAAD', 'BQAD', 'CAAD']
-    if not any(file_id.startswith(prefix) for prefix in photo_prefixes):
-        return False
-    
+
     return True
 
-# Вспомогательные функции для работы с медиа-файлами
-async def send_media_by_type(chat_id, file_id, caption=None, reply_markup=None, parse_mode="HTML"):
-    """Отправляет медиа-файл, автоматически определяя его тип (фото, анимация или видео)"""
+
+def extract_media_file_id(message: types.Message):
+    """Извлекает file_id и тип медиа из сообщения (фото, GIF, видео, документ).
+
+    :return: (file_id, media_type) или (None, None)
+    """
+    if not message:
+        return None, None
+    if getattr(message, 'photo', None):
+        return message.photo[-1].file_id, 'photo'
+    if getattr(message, 'animation', None):
+        return message.animation.file_id, 'animation'
+    if getattr(message, 'video', None):
+        return message.video.file_id, 'video'
+    if getattr(message, 'document', None):
+        return message.document.file_id, 'document'
+    return None, None
+
+# Типы контента сообщений, которые считаются медиа-обложками (фото, GIF, видео, документ)
+COVER_CONTENT_TYPES = [
+    types.ContentType.PHOTO,
+    types.ContentType.ANIMATION,
+    types.ContentType.VIDEO,
+    types.ContentType.DOCUMENT,
+]
+
+
+# Кэш определённого типа медиа: file_id -> 'photo' | 'animation' | 'video' | 'document'
+# Нужен, чтобы не перебирать методы заново при каждом открытии раздела.
+MEDIA_TYPE_CACHE = {}
+
+# Поддерживаемые типы медиа и порядок перебора (от самого частого к редкому)
+MEDIA_TYPE_ORDER = ("photo", "animation", "video", "document")
+
+
+async def send_media_auto(chat_id, file_id, caption=None, reply_markup=None,
+                          parse_mode="HTML", allow_document=True, bot_instance=None):
+    """Отправляет медиа ЛЮБОГО типа в чат: фото, GIF, видео или документ.
+
+    Зачем: обложкой раздела (тема/категория/подкатегория/товар) может быть не только
+    фото — админ может загрузить GIF или MP4, и тогда их file_id лежит в том же поле
+    photo_id. Раньше во всех разделах каталога жёстко вызывался send_photo, Telegram
+    отвечал «wrong file identifier/HTTP URL specified», и раздел не открывался.
+
+    Тип определяется перебором методов и ЗАПОМИНАЕТСЯ в MEDIA_TYPE_CACHE, поэтому
+    повторные открытия не тратят запросы на заведомо неудачные попытки.
+
+    :return: (message | None, media_type | None)
+    """
     if not file_id:
-        return None
-        
-    try:
-        # Пытаемся отправить как фото
+        return None, None
+
+    target = bot_instance or bot
+
+    # Сначала пробуем уже известный тип, затем остальные
+    order = []
+    known = MEDIA_TYPE_CACHE.get(file_id)
+    if known:
+        order.append(known)
+    for candidate in MEDIA_TYPE_ORDER:
+        if candidate not in order:
+            order.append(candidate)
+    if not allow_document:
+        order = [m for m in order if m != "document"]
+
+    senders = {
+        "photo": lambda media: target.send_photo(
+            chat_id=chat_id, photo=media, caption=caption,
+            reply_markup=reply_markup, parse_mode=parse_mode),
+        "animation": lambda media: target.send_animation(
+            chat_id=chat_id, animation=media, caption=caption,
+            reply_markup=reply_markup, parse_mode=parse_mode),
+        "video": lambda media: target.send_video(
+            chat_id=chat_id, video=media, caption=caption,
+            reply_markup=reply_markup, parse_mode=parse_mode),
+        "document": lambda media: target.send_document(
+            chat_id=chat_id, document=media, caption=caption,
+            reply_markup=reply_markup, parse_mode=parse_mode),
+    }
+
+    last_error = None
+    for media_type in order:
         try:
-            return await bot.send_photo(
-                chat_id=chat_id,
-                photo=file_id,
-                caption=caption,
-                reply_markup=reply_markup,
-                parse_mode=parse_mode
-            )
-        except:
-            # Если фото не работает, пробуем как анимацию
-            try:
-                return await bot.send_animation(
-                    chat_id=chat_id,
-                    animation=file_id,
-                    caption=caption,
-                    reply_markup=reply_markup,
-                    parse_mode=parse_mode
-                )
-            except:
-                # Если анимация не работает, пробуем как видео
-                return await bot.send_video(
-                    chat_id=chat_id,
-                    video=file_id,
-                    caption=caption,
-                    reply_markup=reply_markup,
-                    parse_mode=parse_mode
-                )
-    except Exception as e:
-        print(f"Error sending media {file_id}: {e}")
-        return None
+            sent_message = await senders[media_type](file_id)
+            MEDIA_TYPE_CACHE[file_id] = media_type
+            return sent_message, media_type
+        except Exception as e:
+            last_error = e
+            # Тип определён неверно (например, кэш устарел) — забываем его
+            if MEDIA_TYPE_CACHE.get(file_id) == media_type:
+                MEDIA_TYPE_CACHE.pop(file_id, None)
+            continue
+
+    print(f"⚠️ Не удалось отправить медиа {str(file_id)[:20]}... ни одним способом: {last_error}")
+    return None, None
+
+
+async def answer_media_auto(message, file_id, caption=None, reply_markup=None,
+                            parse_mode="HTML", allow_document=True):
+    """Отвечает медиа любого типа (фото / GIF / видео / документ).
+
+    :return: (message | None, media_type | None)
+    """
+    if not file_id:
+        return None, None
+
+    order = []
+    known = MEDIA_TYPE_CACHE.get(file_id)
+    if known:
+        order.append(known)
+    for candidate in MEDIA_TYPE_ORDER:
+        if candidate not in order:
+            order.append(candidate)
+    if not allow_document:
+        order = [m for m in order if m != "document"]
+
+    senders = {
+        "photo": lambda media: message.answer_photo(
+            photo=media, caption=caption,
+            reply_markup=reply_markup, parse_mode=parse_mode),
+        "animation": lambda media: message.answer_animation(
+            animation=media, caption=caption,
+            reply_markup=reply_markup, parse_mode=parse_mode),
+        "video": lambda media: message.answer_video(
+            video=media, caption=caption,
+            reply_markup=reply_markup, parse_mode=parse_mode),
+        "document": lambda media: message.answer_document(
+            document=media, caption=caption,
+            reply_markup=reply_markup, parse_mode=parse_mode),
+    }
+
+    last_error = None
+    for media_type in order:
+        try:
+            sent_message = await senders[media_type](file_id)
+            MEDIA_TYPE_CACHE[file_id] = media_type
+            return sent_message, media_type
+        except Exception as e:
+            last_error = e
+            if MEDIA_TYPE_CACHE.get(file_id) == media_type:
+                MEDIA_TYPE_CACHE.pop(file_id, None)
+            continue
+
+    print(f"⚠️ Не удалось отправить медиа {str(file_id)[:20]}... ни одним способом: {last_error}")
+    return None, None
+
+
+async def send_media_by_type(chat_id, file_id, caption=None, reply_markup=None, parse_mode="HTML"):
+    """Обёртка для обратной совместимости (см. send_media_auto)."""
+    sent_message, _ = await send_media_auto(
+        chat_id, file_id, caption=caption, reply_markup=reply_markup,
+        parse_mode=parse_mode)
+    return sent_message
 
 async def answer_media_by_type(message, file_id, caption=None, reply_markup=None, parse_mode="HTML"):
-    """Отвечает медиа-файлом, автоматически определяя его тип (фото, анимация или видео)"""
-    if not file_id:
-        return None
-        
-    try:
-        # Пытаемся отправить как фото
-        try:
-            return await message.answer_photo(
-                photo=file_id,
-                caption=caption,
-                reply_markup=reply_markup,
-                parse_mode=parse_mode
-            )
-        except:
-            # Если фото не работает, пробуем как анимацию
-            try:
-                return await message.answer_animation(
-                    animation=file_id,
-                    caption=caption,
-                    reply_markup=reply_markup,
-                    parse_mode=parse_mode
-                )
-            except:
-                # Если анимация не работает, пробуем как видео
-                return await message.answer_video(
-                    video=file_id,
-                    caption=caption,
-                    reply_markup=reply_markup,
-                    parse_mode=parse_mode
-                )
-    except Exception as e:
-        print(f"Error answering media {file_id}: {e}")
-        return None
+    """Обёртка для обратной совместимости (см. answer_media_auto)."""
+    sent_message, _ = await answer_media_auto(
+        message, file_id, caption=caption, reply_markup=reply_markup,
+        parse_mode=parse_mode)
+    return sent_message
 
 
 # Глобальная функция для получения реквизитов из БД
@@ -1339,14 +1424,13 @@ async def show_product_by_id(message: types.Message, product_id: int):
     keyboard.add(InlineKeyboardButton("🔙 Назад в меню", callback_data="back_to_main"))
 
     # Отправляем фото или текст с одинаковым форматированием
-    if product[6] and is_valid_telegram_file_id(product[6]):  # photo_id
-        await message.answer_photo(
-            photo=product[6],
-            caption=formatted_description,
-            parse_mode="HTML",
-            reply_markup=keyboard
+    media_message = None
+    if product[6] and is_valid_telegram_file_id(product[6]):
+        media_message, _ = await answer_media_auto(
+            message, product[6], caption=formatted_description,
+            reply_markup=keyboard, parse_mode="HTML"
         )
-    else:
+    if media_message is None:
         await message.answer(
             formatted_description,
             parse_mode="HTML",
@@ -2244,23 +2328,27 @@ async def replace_message_with_sticker_first(callback: types.CallbackQuery, new_
             )
             sticker_sent = True
 
-        # Telegram не принимает пустой текст: раньше это приводило к ошибке,
-        # обработчик ошибки повторно отправлял стикер и раздел не открывался
-        # («присылает 2 стикера и всё»). Теперь текст гарантированно непустой.
-        text_to_send = (new_text or "").strip()
-        if not new_photo and not text_to_send:
-            text_to_send = DEFAULT_SECTION_TEXT
+        text_to_send = (new_caption or new_text or "").strip() or DEFAULT_SECTION_TEXT
 
-        # 2. ЗАТЕМ отправляем новый контент
+        # 2. ЗАТЕМ отправляем новый контент.
+        # Обложкой может быть фото, GIF или видео — тип определяется автоматически,
+        # иначе раздел с GIF/MP4 не открывался (ошибка wrong file identifier).
+        media_sent = False
         if new_photo:
-            await bot.send_photo(
+            sent_message, media_type = await send_media_auto(
                 chat_id=callback.message.chat.id,
-                photo=new_photo,
-                caption=new_caption,
-                parse_mode="HTML",
-                reply_markup=new_keyboard
+                file_id=new_photo,
+                caption=text_to_send,
+                reply_markup=new_keyboard,
+                parse_mode="HTML"
             )
-        else:
+            media_sent = sent_message is not None
+            if media_sent:
+                print(f"✅ Медиа раздела отправлено как {media_type}")
+            else:
+                print(f"⚠️ Медиа {str(new_photo)[:20]}... не отправлено, показываю текст")
+
+        if not media_sent:
             await bot.send_message(
                 chat_id=callback.message.chat.id,
                 text=text_to_send,
@@ -2283,13 +2371,20 @@ async def replace_message_with_sticker_first(callback: types.CallbackQuery, new_
                 )
             
             if new_photo:
-                await bot.send_photo(
+                sent_message, _ = await send_media_auto(
                     chat_id=callback.message.chat.id,
-                    photo=new_photo,
-                    caption=new_caption,
-                    parse_mode="HTML",
-                    reply_markup=new_keyboard
+                    file_id=new_photo,
+                    caption=new_caption or (new_text or "").strip() or DEFAULT_SECTION_TEXT,
+                    reply_markup=new_keyboard,
+                    parse_mode="HTML"
                 )
+                if sent_message is None:
+                    await bot.send_message(
+                        chat_id=callback.message.chat.id,
+                        text=(new_text or "").strip() or DEFAULT_SECTION_TEXT,
+                        parse_mode="HTML",
+                        reply_markup=new_keyboard
+                    )
             else:
                 await bot.send_message(
                     chat_id=callback.message.chat.id,
@@ -2330,22 +2425,21 @@ async def replace_message_with_new_content(callback: types.CallbackQuery, new_te
         
         # Затем редактируем текущее сообщение
         if new_photo:
-            # Если нужно изменить на фото
-            if message_to_edit.photo:
-                # Редактируем существующее фото
-                await bot.edit_message_media(
-                    chat_id=message_to_edit.chat.id,
-                    message_id=message_to_edit.message_id,
-                    media=types.InputMediaPhoto(media=new_photo, caption=new_caption, parse_mode="HTML"),
-                    reply_markup=new_keyboard
-                )
-            else:
-                # Удаляем текстовое сообщение и отправляем фото
+            try:
                 await message_to_edit.delete()
-                await bot.send_photo(
+            except Exception:
+                pass
+            sent_message, _ = await send_media_auto(
+                chat_id=message_to_edit.chat.id,
+                file_id=new_photo,
+                caption=new_caption or (new_text or "").strip() or DEFAULT_SECTION_TEXT,
+                reply_markup=new_keyboard,
+                parse_mode="HTML"
+            )
+            if sent_message is None:
+                await bot.send_message(
                     chat_id=message_to_edit.chat.id,
-                    photo=new_photo,
-                    caption=new_caption,
+                    text=(new_text or "").strip() or DEFAULT_SECTION_TEXT,
                     parse_mode="HTML",
                     reply_markup=new_keyboard
                 )
@@ -2397,17 +2491,24 @@ async def replace_message_with_new_content(callback: types.CallbackQuery, new_te
             
             # Затем отправляем новый контент
             if new_photo:
-                await bot.send_photo(
+                sent_message, _ = await send_media_auto(
                     chat_id=callback.message.chat.id,
-                    photo=new_photo,
-                    caption=new_caption,
-                    parse_mode="HTML",
-                    reply_markup=new_keyboard
+                    file_id=new_photo,
+                    caption=new_caption or (new_text or "").strip() or DEFAULT_SECTION_TEXT,
+                    reply_markup=new_keyboard,
+                    parse_mode="HTML"
                 )
+                if sent_message is None:
+                    await bot.send_message(
+                        chat_id=callback.message.chat.id,
+                        text=(new_text or "").strip() or DEFAULT_SECTION_TEXT,
+                        parse_mode="HTML",
+                        reply_markup=new_keyboard
+                    )
             else:
                 await bot.send_message(
                     chat_id=callback.message.chat.id,
-                    text=new_text,
+                    text=(new_text or "").strip() or DEFAULT_SECTION_TEXT,
                     parse_mode="HTML",
                     reply_markup=new_keyboard
                 )
@@ -2818,14 +2919,16 @@ async def send_welcome(message: types.Message):
     try:
         if welcome_sticker_id:
             try:
-                # Используем фото из БД
-                await bot.send_photo(
+                # Используем фото/GIF/видео из БД
+                sent, _ = await send_media_auto(
                     chat_id=message.chat.id,
-                    photo=welcome_photo_id,
+                    file_id=welcome_photo_id,
                     caption=welcome_text,
-                    parse_mode="HTML",
-                    reply_markup=await main_menu_kb()
+                    reply_markup=await main_menu_kb(),
+                    parse_mode="HTML"
                 )
+                if sent is None:
+                    raise RuntimeError("не удалось отправить медиа приветствия")
             except Exception as photo_error:
                 print(f"Ошибка отправки фото из БД: {photo_error}")
                 # Если фото из БД не работает, сбрасываем его и используем стандартное
@@ -2899,15 +3002,18 @@ async def _handle_catalog_button(message: types.Message):
         # Формируем текст
         catalog_text = "🏪 <b>Каталог товаров</b>\n\nВыберите тему:"
         
-        # Отправляем каталог с фото или без
+        # Отправляем каталог с фото/GIF/видео или без
         if catalog_photo_id:
             try:
-                await message.answer_photo(
-                    photo=catalog_photo_id,
+                sent, _ = await answer_media_auto(
+                    message,
+                    catalog_photo_id,
                     caption=catalog_text,
                     reply_markup=keyboard,
                     parse_mode="HTML"
                 )
+                if sent is None:
+                    raise RuntimeError("не удалось отправить обложку каталога")
             except Exception as e:
                 # Если фото не работает, отправляем только текст
                 print(f"Ошибка отправки фото каталога: {e}")
@@ -3045,15 +3151,18 @@ async def _handle_bonus_button(message: types.Message):
         is_admin = await is_user_admin(message.from_user.id)
         keyboard = bonus_sections_list_kb(sections, is_admin=is_admin)
         
-        # Отправляем фото с описанием и кнопками
+        # Отправляем медиа с описанием и кнопками
         if bonus_photo_id:
             try:
-                await message.answer_photo(
-                    photo=bonus_photo_id,
+                sent, _ = await answer_media_auto(
+                    message,
+                    bonus_photo_id,
                     caption=bonus_description,
                     reply_markup=keyboard,
                     parse_mode="HTML"
                 )
+                if sent is None:
+                    raise RuntimeError("не удалось отправить медиа бонусов")
             except Exception as e:
                 print(f"Ошибка отправки фото бонусов: {e}")
                 await message.answer(
@@ -4777,14 +4886,17 @@ async def view_theme_handler(callback: types.CallbackQuery):
             if theme[5]:  # sticker_id
                 await callback.message.answer_sticker(theme[5])
             
-            if theme[6]:  # photo_id
-                await callback.message.answer_photo(
-                    photo=theme[6],
+            media_sent = False
+            if theme[6]:  # photo_id / GIF / video
+                sent, _ = await answer_media_auto(
+                    callback.message,
+                    theme[6],
                     caption=description,
-                    parse_mode="HTML",
-                    reply_markup=keyboard
+                    reply_markup=keyboard,
+                    parse_mode="HTML"
                 )
-            else:
+                media_sent = sent is not None
+            if not media_sent:
                 await callback.message.answer(
                     text=description,
                     parse_mode="HTML",
@@ -5433,16 +5545,18 @@ async def admin_edit_product_photo_start(callback: types.CallbackQuery, state: F
         await state.update_data(edit_product_id=product_id)
         message_text = f"🖼 <b>Текущее состояние:</b> {current_photo_status}\n\n🖼 Пришлите новое фото товара (как фото):"
         
-        # Отправляем текущее фото если оно есть
+        # Отправляем текущее медиа если оно есть
         if product and product[6]:
             try:
-                await bot.send_photo(
+                sent, _ = await send_media_auto(
                     chat_id=callback.message.chat.id,
-                    photo=product[6],
+                    file_id=product[6],
                     caption=message_text,
-                    parse_mode='HTML',
-                    reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_product_{product_id}"))
+                    reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_product_{product_id}")),
+                    parse_mode='HTML'
                 )
+                if sent is None:
+                    raise RuntimeError("не удалось отправить превью товара")
             except Exception as e:
                 print(f"Error sending current photo: {e}")
                 await bot.send_message(
@@ -5466,7 +5580,7 @@ async def admin_edit_product_photo_start(callback: types.CallbackQuery, state: F
         await callback.answer("Ошибка")
 
 
-@dp.message_handler(state=AdminProductEditStates.waiting_for_photo, content_types=types.ContentTypes.PHOTO)
+@dp.message_handler(state=AdminProductEditStates.waiting_for_photo, content_types=COVER_CONTENT_TYPES)
 async def admin_edit_product_photo_save(message: types.Message, state: FSMContext):
     try:
         data = await state.get_data()
@@ -5475,9 +5589,14 @@ async def admin_edit_product_photo_save(message: types.Message, state: FSMContex
             await state.finish()
             return
         try:
-            file_id = message.photo[-1].file_id
+            file_id, media_type = extract_media_file_id(message)
+            if not file_id or not is_valid_telegram_file_id(file_id):
+                await message.answer("❌ Ошибка: отправьте фото, GIF или видео.")
+                return
+            if media_type:
+                MEDIA_TYPE_CACHE[file_id] = media_type
             await db.update_product_photo_id(product_id, file_id)
-            await message.answer("✅ Фото обновлено")
+            await message.answer("✅ Обложка товара обновлена")
         except Exception as e:
             print(f"Error updating photo: {e}")
             await message.answer("❌ Ошибка при обновлении фото")
@@ -6292,16 +6411,18 @@ async def admin_edit_category_photo_start(callback: types.CallbackQuery, state: 
         await state.update_data(edit_item_id=category_id, edit_item_type='category')
         message_text = f"🖼 <b>Текущее состояние:</b> {current_photo_status}\n\n🖼 Пришлите новое фото категории (как фото):"
         
-        # Отправляем текущее фото если оно есть
+        # Отправляем текущее медиа если оно есть
         if category and category[6]:
             try:
-                await bot.send_photo(
+                sent, _ = await send_media_auto(
                     chat_id=callback.message.chat.id,
-                    photo=category[6],
+                    file_id=category[6],
                     caption=message_text,
-                    parse_mode='HTML',
-                    reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_category_{category_id}"))
+                    reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_category_{category_id}")),
+                    parse_mode='HTML'
                 )
+                if sent is None:
+                    raise RuntimeError("не удалось отправить превью категории")
             except Exception as e:
                 print(f"Error sending current photo: {e}")
                 await bot.send_message(
@@ -6419,16 +6540,18 @@ async def admin_edit_theme_photo_start(callback: types.CallbackQuery, state: FSM
         await state.update_data(edit_item_id=theme_id, edit_item_type='theme')
         message_text = f"🖼 <b>Текущее состояние:</b> {current_photo_status}\n\n🖼 Пришлите новое фото темы (как фото):"
         
-        # Отправляем текущее фото если оно есть
+        # Отправляем текущее медиа если оно есть
         if theme and theme[6]:
             try:
-                await bot.send_photo(
+                sent, _ = await send_media_auto(
                     chat_id=callback.message.chat.id,
-                    photo=theme[6],
+                    file_id=theme[6],
                     caption=message_text,
-                    parse_mode='HTML',
-                    reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_theme_{theme_id}"))
+                    reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_theme_{theme_id}")),
+                    parse_mode='HTML'
                 )
+                if sent is None:
+                    raise RuntimeError("не удалось отправить превью темы")
             except Exception as e:
                 print(f"Error sending current photo: {e}")
                 await bot.send_message(
@@ -6547,16 +6670,18 @@ async def admin_edit_subcategory_photo_start(callback: types.CallbackQuery, stat
         await state.update_data(edit_item_id=subcategory_id, edit_item_type='subcategory')
         message_text = f"🖼 <b>Текущее состояние:</b> {current_photo_status}\n\n🖼 Пришлите новое фото подкатегории (как фото):"
         
-        # Отправляем текущее фото если оно есть
+        # Отправляем текущее медиа если оно есть
         if subcategory and subcategory[6]:
             try:
-                await bot.send_photo(
+                sent, _ = await send_media_auto(
                     chat_id=callback.message.chat.id,
-                    photo=subcategory[6],
+                    file_id=subcategory[6],
                     caption=message_text,
-                    parse_mode='HTML',
-                    reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_subcategory_{subcategory_id}"))
+                    reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 Назад", callback_data=f"admin_edit_subcategory_{subcategory_id}")),
+                    parse_mode='HTML'
                 )
+                if sent is None:
+                    raise RuntimeError("не удалось отправить превью подкатегории")
             except Exception as e:
                 print(f"Error sending current photo: {e}")
                 await bot.send_message(
@@ -6658,7 +6783,7 @@ async def admin_edit_subcategory_preview_start(callback: types.CallbackQuery, st
         await callback.answer("Ошибка")
 
 # Обработчики сохранения фото, стикера и превью-ссылки
-@dp.message_handler(state=AdminCatalogEditStates.waiting_for_photo, content_types=types.ContentTypes.PHOTO)
+@dp.message_handler(state=AdminCatalogEditStates.waiting_for_photo, content_types=COVER_CONTENT_TYPES)
 async def admin_edit_catalog_photo_save(message: types.Message, state: FSMContext):
     try:
         data = await state.get_data()
@@ -6668,9 +6793,14 @@ async def admin_edit_catalog_photo_save(message: types.Message, state: FSMContex
             await state.finish()
             return
         try:
-            file_id = message.photo[-1].file_id
+            file_id, media_type = extract_media_file_id(message)
+            if not file_id or not is_valid_telegram_file_id(file_id):
+                await message.answer("❌ Ошибка: отправьте фото, GIF или видео.")
+                return
+            if media_type:
+                MEDIA_TYPE_CACHE[file_id] = media_type
             await db.update_catalog_item_photo_id(item_id, file_id)
-            await message.answer("✅ Фото обновлено")
+            await message.answer("✅ Обложка раздела обновлена")
         except Exception as e:
             print(f"Error updating photo: {e}")
             await message.answer("❌ Ошибка при обновлении фото")
@@ -6883,15 +7013,17 @@ async def recreate_category_view(chat_id, message_id, category_id, user_id=None)
         keyboard = await create_catalog_keyboard(children, is_admin=await is_user_admin(user_id) if user_id else False, parent_id=category_id, item_type='category')
         
         # Отправляем обновленное сообщение
-        if category[6]:  # photo_id
-            await bot.send_photo(
+        media_sent = False
+        if category[6]:
+            sent, _ = await send_media_auto(
                 chat_id=chat_id,
-                photo=category[6],
+                file_id=category[6],
                 caption=description,
                 parse_mode="HTML",
                 reply_markup=keyboard
             )
-        else:
+            media_sent = sent is not None
+        if not media_sent:
             await bot.send_message(
                 chat_id=chat_id,
                 text=description,
@@ -6927,15 +7059,17 @@ async def recreate_theme_view(chat_id, message_id, theme_id, user_id=None):
             await bot.send_sticker(chat_id, theme[5])
         
         # Отправляем обновленное сообщение
-        if theme[6]:  # photo_id
-            await bot.send_photo(
+        media_sent = False
+        if theme[6]:
+            sent, _ = await send_media_auto(
                 chat_id=chat_id,
-                photo=theme[6],
+                file_id=theme[6],
                 caption=description,
                 parse_mode="HTML",
                 reply_markup=keyboard
             )
-        else:
+            media_sent = sent is not None
+        if not media_sent:
             await bot.send_message(
                 chat_id=chat_id,
                 text=description,
@@ -6967,15 +7101,17 @@ async def recreate_subcategory_view(chat_id, message_id, subcategory_id, user_id
         keyboard = await create_catalog_keyboard(children, is_admin=await is_user_admin(user_id) if user_id else False, parent_id=subcategory_id, item_type='subcategory')
         
         # Отправляем обновленное сообщение
-        if subcategory[6]:  # photo_id
-            await bot.send_photo(
+        media_sent = False
+        if subcategory[6]:
+            sent, _ = await send_media_auto(
                 chat_id=chat_id,
-                photo=subcategory[6],
+                file_id=subcategory[6],
                 caption=description,
                 parse_mode="HTML",
                 reply_markup=keyboard
             )
-        else:
+            media_sent = sent is not None
+        if not media_sent:
             await bot.send_message(
                 chat_id=chat_id,
                 text=description,
@@ -7125,12 +7261,14 @@ async def recreate_product_view(chat_id: int, message_id: int, product_id: int, 
                 keyboard.add(InlineKeyboardButton("🔙 Назад", callback_data=f"view_parent_{product[1]}_0"))
         
         # 2. ЗАТЕМ отправляем сообщение с товаром (СРАЗУ после стикера)
-        if product[6]:  # photo_id
-            await bot.send_photo(
-                chat_id=chat_id, photo=product[6],
+        media_sent = False
+        if product[6]:
+            sent, _ = await send_media_auto(
+                chat_id=chat_id, file_id=product[6],
                 caption=formatted_description, parse_mode="HTML", reply_markup=keyboard
             )
-        else:
+            media_sent = sent is not None
+        if not media_sent:
             await bot.send_message(
                 chat_id=chat_id, text=formatted_description,
                 parse_mode="HTML", reply_markup=keyboard
@@ -8098,14 +8236,16 @@ async def back_to_main_handler(callback: types.CallbackQuery, state: FSMContext)
         if welcome_photo_id and is_valid_telegram_file_id(welcome_photo_id):
             # Проверяем, что ID фото валидный
             try:
-                # Используем фото из БД
-                await bot.send_photo(
+                # Используем фото/GIF/видео из БД
+                sent, _ = await send_media_auto(
                     chat_id=callback.message.chat.id,
-                    photo=welcome_photo_id,
+                    file_id=welcome_photo_id,
                     caption=welcome_text,
                     reply_markup=await main_menu_kb(),
                     parse_mode="HTML"
                 )
+                if sent is None:
+                    raise RuntimeError("не удалось отправить медиа приветствия")
             except Exception as photo_error:
                 print(f"Ошибка отправки фото из БД: {photo_error}")
                 # Если фото из БД не работает, сбрасываем его и используем стандартное
@@ -12176,22 +12316,21 @@ async def handle_grid_pagination(callback_query: types.CallbackQuery):
         print(f"Unexpected error in handle_grid_pagination: {e}")
         await callback_query.answer(f"Ошибка: {e}")
 
-@dp.message_handler(state=WelcomeEditStates.waiting_for_photo, content_types=types.ContentType.PHOTO)
+@dp.message_handler(state=WelcomeEditStates.waiting_for_photo, content_types=COVER_CONTENT_TYPES)
 async def process_welcome_photo(message: types.Message, state: FSMContext):
-    """Обработка нового фото"""
-    # Берём самое высокое разрешение фото
-    photo_id = message.photo[-1].file_id
-    
-    # Проверяем валидность photo_id
-    if not is_valid_telegram_file_id(photo_id):
+    """Обработка нового медиа приветствия (фото, GIF, видео)"""
+    photo_id, media_type = extract_media_file_id(message)
+    if not photo_id or not is_valid_telegram_file_id(photo_id):
         await message.answer(
-            "❌ Ошибка: Получен невалидный ID фото. Попробуйте отправить другое фото."
+            "❌ Ошибка: Получен невалидный ID медиа. Попробуйте отправить другое фото, GIF или видео."
         )
         return
-    
+    if media_type:
+        MEDIA_TYPE_CACHE[photo_id] = media_type
+
     await db.set_bot_setting("welcome_photo_id", photo_id)
     await message.answer(
-        f"✅ Фото успешно обновлено!\n\nID фото: <code>{photo_id}</code>",
+        f"✅ Медиа приветствия успешно обновлено!\n\nID: <code>{photo_id}</code>",
         parse_mode="HTML"
     )
     await state.finish()
@@ -12207,22 +12346,21 @@ async def process_welcome_photo_text(message: types.Message, state: FSMContext):
         return
     await state.finish()
 
-@dp.message_handler(state=WelcomeEditStates.waiting_for_catalog_photo, content_types=types.ContentType.PHOTO)
+@dp.message_handler(state=WelcomeEditStates.waiting_for_catalog_photo, content_types=COVER_CONTENT_TYPES)
 async def process_catalog_photo_edit(message: types.Message, state: FSMContext):
-    """Обработка нового фото каталога"""
-    # Берём самое высокое разрешение фото
-    photo_id = message.photo[-1].file_id
-    
-    # Проверяем валидность photo_id
-    if not is_valid_telegram_file_id(photo_id):
+    """Обработка нового медиа каталога (фото, GIF, видео)"""
+    photo_id, media_type = extract_media_file_id(message)
+    if not photo_id or not is_valid_telegram_file_id(photo_id):
         await message.answer(
-            "❌ Ошибка: Получен невалидный ID фото. Попробуйте отправить другое фото."
+            "❌ Ошибка: Получен невалидный ID медиа. Попробуйте отправить другое фото, GIF или видео."
         )
         return
-    
+    if media_type:
+        MEDIA_TYPE_CACHE[photo_id] = media_type
+
     await db.set_bot_setting("catalog_photo_id", photo_id)
     await message.answer(
-        f"✅ Фото каталога успешно обновлено!\n\nID фото: <code>{photo_id}</code>\n\n📝 Теперь это фото будет отображаться в каталоге с кнопками тем.",
+        f"✅ Обложка каталога успешно обновлена!\n\nID: <code>{photo_id}</code>\n\n📝 Теперь это медиа будет отображаться в каталоге с кнопками тем.",
         parse_mode="HTML"
     )
     await state.finish()
@@ -12263,20 +12401,22 @@ async def process_bonus_sticker_text(message: types.Message, state: FSMContext):
         return
     await state.finish()
 
-@dp.message_handler(state=BonusSystemStates.waiting_for_bonus_photo, content_types=types.ContentType.PHOTO)
+@dp.message_handler(state=BonusSystemStates.waiting_for_bonus_photo, content_types=COVER_CONTENT_TYPES)
 async def process_bonus_photo(message: types.Message, state: FSMContext):
-    """Обработка фото для системы бонусов"""
-    photo_id = message.photo[-1].file_id
-    
-    if not is_valid_telegram_file_id(photo_id):
+    """Обработка медиа для системы бонусов (фото, GIF, видео)"""
+    photo_id, media_type = extract_media_file_id(message)
+
+    if not photo_id or not is_valid_telegram_file_id(photo_id):
         await message.answer(
-            "❌ Ошибка: Получен невалидный ID фото. Попробуйте отправить другое фото."
+            "❌ Ошибка: Получен невалидный ID медиа. Попробуйте отправить другое фото, GIF или видео."
         )
         return
-    
+    if media_type:
+        MEDIA_TYPE_CACHE[photo_id] = media_type
+
     await db.set_bot_setting("bonus_photo_id", photo_id)
     await message.answer(
-        f"✅ Фото бонусов успешно обновлено!\n\nID фото: <code>{photo_id}</code>",
+        f"✅ Медиа бонусов успешно обновлено!\n\nID: <code>{photo_id}</code>",
         parse_mode="HTML"
     )
     await state.finish()
@@ -12312,17 +12452,19 @@ async def process_bonus_description(message: types.Message, state: FSMContext):
 
 # Обработчики для создания списка заданий
 
-@dp.message_handler(state=BonusSystemStates.waiting_for_task_photo, content_types=types.ContentType.PHOTO)
+@dp.message_handler(state=BonusSystemStates.waiting_for_task_photo, content_types=COVER_CONTENT_TYPES)
 async def process_task_photo(message: types.Message, state: FSMContext):
-    """Обработка фото для задания"""
-    photo_id = message.photo[-1].file_id
-    
-    if not is_valid_telegram_file_id(photo_id):
+    """Обработка медиа для задания (фото, GIF, видео)"""
+    photo_id, media_type = extract_media_file_id(message)
+
+    if not photo_id or not is_valid_telegram_file_id(photo_id):
         await message.answer(
-            "❌ Ошибка: Получен невалидный ID фото. Попробуйте отправить другое фото."
+            "❌ Ошибка: Получен невалидный ID медиа. Попробуйте отправить другое фото, GIF или видео."
         )
         return
-    
+    if media_type:
+        MEDIA_TYPE_CACHE[photo_id] = media_type
+
     async with state.proxy() as data:
         data['task_photo_id'] = photo_id
     
@@ -13056,8 +13198,9 @@ async def view_bonus_section_handler(callback: types.CallbackQuery):
                         else:
                             # Если это не фото сообщение, удаляем и отправляем новое
                             await callback.message.delete()
-                            new_message = await callback.message.answer_photo(
-                                photo=section_photo_id,
+                            new_message, _ = await answer_media_auto(
+                                callback.message,
+                                section_photo_id,
                                 caption=text,
                                 reply_markup=keyboard,
                                 parse_mode="HTML"
@@ -13068,8 +13211,9 @@ async def view_bonus_section_handler(callback: types.CallbackQuery):
                         # Если редактирование не удалось, отправляем новое сообщение
                         print(f"Ошибка редактирования сообщения: {edit_error}")
                         try:
-                            new_message = await callback.message.answer_photo(
-                                photo=section_photo_id,
+                            new_message, _ = await answer_media_auto(
+                                callback.message,
+                                section_photo_id,
                                 caption=text,
                                 reply_markup=keyboard,
                                 parse_mode="HTML"
@@ -13581,8 +13725,9 @@ async def view_task_handler(callback: types.CallbackQuery):
         if task_photo_id:
             try:
                 await callback.message.delete()
-                new_message = await callback.message.answer_photo(
-                    photo=task_photo_id,
+                new_message, _ = await answer_media_auto(
+                    callback.message,
+                    task_photo_id,
                     caption=text,
                     reply_markup=keyboard,
                     parse_mode="HTML"

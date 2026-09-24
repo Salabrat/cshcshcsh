@@ -1,0 +1,29 @@
+PASS  None + None -> non-empty  | '📂 Выберите раздел:'
+PASS  '' + None -> non-empty
+PASS  'None' string -> non-empty
+PASS  fallback used when empty
+PASS  preview_link added when empty description
+PASS  normal description kept
+PASS  sticker sent exactly ONCE (was: two stickers)  | 1 stickers
+PASS  text message sent and non-empty  | ['📂 Выберите раздел:']
+PASS  theme: sticker sent once  | 1
+PASS  theme: non-empty text sent  | ['🏪 <b>SCAMMER</b>\n\nВыберите категорию:']
+PASS  theme: fallback contains theme name  | ['🏪 <b>SCAMMER</b>\n\nВыберите категорию:']
+PASS  theme: keyboard present (buttons built)
+PASS  category: one sticker at most  | 0
+PASS  category: non-empty text sent  | ['📂 <b>Скрипты</b>\n\nВыберите раздел:']
+PASS  category: fallback contains category name  | ['📂 <b>Скрипты</b>\n\nВыберите раздел:']
+PASS  subcategory: non-empty text sent  | ['📂 <b>Северный регион</b>\n\nВыберите товар:']
+PASS  catalog button: non-empty text sent  | ['🏪 <b>Каталог товаров</b>\n\nВыберите тему:']
+PASS  described theme: sticker once  | 1
+PASS  described theme: text preserved  | ['<b>Описание темы</b>']
+PASS  gif cover: animation sent instead of failing  | 1 animations
+PASS  gif cover: sticker sent once  | 1 stickers
+PASS  gif cover: cached type is animation  | animation
+PASS  video cover: video sent  | 1 videos
+PASS  video cover: cached type is video  | video
+PASS  dead cover: sticker still sent  | 1 stickers
+PASS  dead cover: fallback to text succeeded  | ['Раздел с битой ссылкой']
+PASS  dead cover: fallback text has section content  | ['Раздел с битой ссылкой']
+
+RESULT: 27 passed, 0 failed, 27 total
